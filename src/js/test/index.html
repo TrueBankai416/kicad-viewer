@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>KiCanvas Test</title>
+    <!-- 
+    NOTE: This file must be accessed through a web server, not directly from the file system.
+    Opening with file:// protocol will cause CORS errors with ES modules.
+    
+    To test locally, you can use a simple server like:
+    - Python: python -m http.server
+    - Node.js: npx http-server
+    
+    Then access via http://localhost:8000/src/js/test/index.html
+    -->
+</head>
+<body>
+    <kicanvas-embed src="panel.kicad_pcb" controls="basic"> </kicanvas-embed>
+    <script type="module" src="https://kicanvas.org/kicanvas/kicanvas.js" defer></script>
+</body>
+</html>

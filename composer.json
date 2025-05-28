@@ -1,0 +1,14 @@
+{
+    "name": "pytonballoon810/kicad_viewer",
+    "description": "Visualise and explore KiCAD files in Nextcloud",
+    "type": "project",
+    "license": "GNUv3",
+    "authors": [
+      {
+        "name": "pytonballoon810",
+        "role": "Developer"
+      }
+    ],
+    "require": {},
+    "require-dev": {}
+}
