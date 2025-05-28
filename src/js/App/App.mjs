@@ -197,8 +197,15 @@ export default {
           // Get appropriate mime type for this file extension
           const mimeType = this.getKiCadMimeType(fileExtension);
 
-          // Convert to base64 - handle Unicode correctly
-          const base64Content = btoa(unescape(encodeURIComponent(fileContent)));
+          // Convert to base64 - handle Unicode correctly without deprecated unescape()
+          // Use a more robust approach that handles large files
+          const bytes = new TextEncoder().encode(fileContent);
+          let binary = '';
+          const chunkSize = 0x8000; // 32KB chunks to avoid call stack limits
+          for (let i = 0; i < bytes.length; i += chunkSize) {
+            binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+          }
+          const base64Content = btoa(binary);
           const dataUrl = `data:${mimeType};base64,${base64Content}`;
 
           // Set source attribute
