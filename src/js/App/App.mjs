@@ -4,7 +4,7 @@
  */
 
 import {v4 as uuidv4} from 'uuid';
-import {generateFilePath} from '@nextcloud/router';
+import {generateFilePath, generateUrl} from '@nextcloud/router';
 import {APP_ID} from 'configuration/config.mjs';
 import {fetchFileFromUrl} from 'helpers/warp-helpers.mjs';
 import logger from 'logger/logger.mjs';
