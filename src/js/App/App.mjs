@@ -123,9 +123,9 @@ export default {
         // Instead of blob URLs, use our server endpoint that preserves filename in URL
         enhancedLogger.debug('Using server endpoint approach for proper filename in URL');
         
-        // Extract the file path from the source URL
-        // davPath format: /remote.php/dav/files/admin/filename.kicad_sch
-        const filePath = this.davPath.replace('/remote.php/dav/files/' + OC.getCurrentUser().uid + '/', '');
+        // For now, use just the basename as the path since we're dealing with single files
+        // The PHP controller will need to handle this appropriately
+        const filePath = this.basename;
         
         // Construct URL to our endpoint with proper filename
         const fileUrl = generateUrl('/apps/kicad_viewer/api/file/{path}/{filename}', {

@@ -42,7 +42,11 @@ class FileController extends Controller {
             }
             
             $userFolder = $this->rootFolder->getUserFolder($user->getUID());
-            $file = $userFolder->get($path);
+            
+            // If path is just the filename, use it directly
+            // Otherwise treat path as the full file path
+            $filePath = ($path === $filename) ? $filename : $path;
+            $file = $userFolder->get($filePath);
             
             if (!$file || $file->getType() !== \OCP\Files\FileInfo::TYPE_FILE) {
                 return new StreamResponse('', Http::STATUS_NOT_FOUND);
