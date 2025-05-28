@@ -156,19 +156,40 @@ export default {
           enhancedLogger.warn('Could not replace embed element, continuing with original:', err.message);
         }
 
-        // Create the source element with content
-        const sourceElement = this.createKiCanvasSourceElement(fileContent, fileExtension);
-        if (!sourceElement) {
-          enhancedLogger.error('Failed to create source element');
-          return;
-        }
-
-        // Add the source to the embed
+        // Set the file content directly on the kicanvas-embed element
         try {
-          this.kicanvasEmbed.appendChild(sourceElement);
-          enhancedLogger.debug('Successfully added source to embed');
+          enhancedLogger.debug('Setting file content directly on kicanvas-embed');
+          
+          // Create blob URL from file content
+          const mimeType = this.getKiCadMimeType(fileExtension);
+          const blob = new Blob([fileContent], { type: mimeType });
+          const fileUrl = URL.createObjectURL(blob);
+          
+          enhancedLogger.debug('Created blob URL for KiCanvas:', {
+            url: fileUrl,
+            mimeType: mimeType,
+            fileSize: fileContent.length,
+            filename: this.basename
+          });
+          
+          // Set the src attribute directly on kicanvas-embed (this is the correct way)
+          this.kicanvasEmbed.setAttribute('src', fileUrl);
+          this.kicanvasEmbed.setAttribute('controls', 'basic');
+          
+          enhancedLogger.debug('Set src attribute on kicanvas-embed successfully');
+          
+          // Clean up the URL after KiCanvas has loaded it
+          setTimeout(() => {
+            try {
+              URL.revokeObjectURL(fileUrl);
+              enhancedLogger.debug('Cleaned up blob URL');
+            } catch (e) {
+              // Ignore cleanup errors
+            }
+          }, 30000);
+          
         } catch (err) {
-          enhancedLogger.error('Failed to add source to embed:', err);
+          enhancedLogger.error('Failed to set content on kicanvas-embed:', err);
           return;
         }
 
@@ -181,94 +202,6 @@ export default {
       }
     },
     
-    createKiCanvasSourceElement(fileContent, fileExtension) {
-      try {
-        enhancedLogger.debug('Creating kicanvas-source element using innerHTML approach');
-        
-        const mimeType = this.getKiCadMimeType(fileExtension);
-        enhancedLogger.debug('Source element config:', {
-          name: this.basename,
-          type: mimeType,
-          extension: fileExtension,
-          contentLength: fileContent.length
-        });
-
-        // Create a temporary container to build the source element
-        const tempContainer = document.createElement('div');
-        
-        // Try multiple approaches to embed the content
-        let sourceHTML = '';
-        let contentSet = false;
-
-        // Approach 1: Blob URL approach (most reliable for KiCanvas)
-        try {
-          const blob = new Blob([fileContent], { type: mimeType });
-          const fileUrl = URL.createObjectURL(blob);
-          
-          sourceHTML = `<kicanvas-source name="${this.escapeHtml(this.basename)}" type="${this.escapeHtml(mimeType)}" src="${fileUrl}" data-format="${this.escapeHtml(fileExtension)}"></kicanvas-source>`;
-          
-          enhancedLogger.debug('Using blob URL approach for source');
-          contentSet = true;
-          
-          // Clean up the URL after a delay
-          setTimeout(() => {
-            try {
-              URL.revokeObjectURL(fileUrl);
-            } catch (e) {
-              // Ignore cleanup errors
-            }
-          }, 30000);
-          
-        } catch (blobError) {
-          enhancedLogger.debug('Blob URL approach failed:', blobError.message);
-        }
-
-        // Approach 2: Base64 data URL approach
-        if (!contentSet && fileContent.length < 500000) {
-          try {
-            const base64Content = this.encodeUtf8ToBase64(fileContent);
-            const dataUrl = `data:${mimeType};base64,${base64Content}`;
-            
-            sourceHTML = `<kicanvas-source name="${this.escapeHtml(this.basename)}" type="${this.escapeHtml(mimeType)}" src="${dataUrl}" data-format="${this.escapeHtml(fileExtension)}"></kicanvas-source>`;
-            
-            enhancedLogger.debug('Using base64 data URL approach for source');
-            contentSet = true;
-          } catch (base64Error) {
-            enhancedLogger.debug('Base64 data URL approach failed:', base64Error.message);
-          }
-        }
-
-        // Approach 3: Inline content approach
-        if (!contentSet) {
-          const escapedContent = this.escapeHtml(fileContent);
-          sourceHTML = `<kicanvas-source name="${this.escapeHtml(this.basename)}" type="${this.escapeHtml(mimeType)}" data-format="${this.escapeHtml(fileExtension)}">${escapedContent}</kicanvas-source>`;
-          
-          enhancedLogger.debug('Using inline content approach for source');
-          contentSet = true;
-        }
-
-        // Set the HTML and extract the element
-        tempContainer.innerHTML = sourceHTML;
-        const sourceElement = tempContainer.firstElementChild;
-        
-        if (!sourceElement) {
-          throw new Error('Failed to create source element from HTML');
-        }
-
-        enhancedLogger.debug('Successfully created kicanvas-source element via innerHTML');
-        return sourceElement;
-        
-      } catch (error) {
-        enhancedLogger.error('Failed to create source element:', error);
-        return null;
-      }
-    },
-    
-    escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    },
     
     refreshKiCanvas() {
       try {
