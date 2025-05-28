@@ -49,7 +49,10 @@ export default {
       uuid: `uuid-${uuidv4()}`,
       isLoading: true,
       appIconUrl: generateFilePath(APP_ID, '', 'img/app.svg'),
-      kicanvasEmbed: null,
+      kicanvasSrc: null,
+      kicanvasType: null,
+      kicanvasFilename: null,
+      kicanvasFormat: null,
     };
   },
   mounted () {
@@ -112,138 +115,65 @@ export default {
       }
     },
     initKiCanvas(fileContent, fileExtension) {
-      enhancedLogger.info('=== Starting KiCanvas initialization ===');
+      enhancedLogger.info('=== Starting KiCanvas initialization (Vue reactive approach) ===');
       
       try {
-        // Find the container
-        const container = this.$el.querySelector(`.${this.$style.containCanvas}`);
-        if (!container) {
-          enhancedLogger.error('Canvas container not found');
-          return;
-        }
-        enhancedLogger.debug('Canvas container found');
-
-        // Find or create the kicanvas-embed element
-        this.kicanvasEmbed = container.querySelector('kicanvas-embed');
-        if (!this.kicanvasEmbed) {
-          enhancedLogger.error('KiCanvas embed element not found in container');
-          return;
-        }
-        enhancedLogger.debug('Found kicanvas-embed element');
-
-        // Instead of manipulating children, recreate the entire embed element
-        // This avoids any DOM operation issues with the custom element
-        const parent = this.kicanvasEmbed.parentNode;
-        const newEmbed = document.createElement('kicanvas-embed');
+        const mimeType = this.getKiCadMimeType(fileExtension);
+        let fileUrl;
         
-        // Copy any important attributes from the old embed
-        if (this.kicanvasEmbed.hasAttributes()) {
-          for (let attr of this.kicanvasEmbed.attributes) {
-            try {
-              newEmbed.setAttribute(attr.name, attr.value);
-            } catch (e) {
-              enhancedLogger.debug('Could not copy attribute:', attr.name);
-            }
-          }
-        }
-
-        // Replace the old embed with the new one
+        // Use File object approach which preserves filename better for KiCanvas
+        enhancedLogger.debug('Using File object approach for better filename preservation');
+        
+        // Create File object blob URL approach (preserves filename)
         try {
-          parent.replaceChild(newEmbed, this.kicanvasEmbed);
-          this.kicanvasEmbed = newEmbed;
-          enhancedLogger.debug('Successfully replaced kicanvas-embed element');
-        } catch (err) {
-          enhancedLogger.warn('Could not replace embed element, continuing with original:', err.message);
+          // Create a File object instead of plain Blob to preserve filename
+          const file = new File([fileContent], this.basename, { type: mimeType });
+          fileUrl = URL.createObjectURL(file);
+          enhancedLogger.debug('Using File object blob URL approach for KiCanvas');
+        } catch (fileError) {
+          // Fallback to regular blob if File constructor not supported
+          const blob = new Blob([fileContent], { type: mimeType });
+          fileUrl = URL.createObjectURL(blob);
+          enhancedLogger.debug('Using regular blob URL approach for KiCanvas');
         }
-
-        // Set the file content directly on the kicanvas-embed element
-        try {
-          enhancedLogger.debug('Setting file content directly on kicanvas-embed');
-          
-          const mimeType = this.getKiCadMimeType(fileExtension);
-          let fileUrl;
-          
-          // Use File object approach which preserves filename better for KiCanvas
-          enhancedLogger.debug('Using File object approach for better filename preservation');
-          
-          // Use File object blob URL approach (preserves filename)
+        
+        enhancedLogger.debug('Created file URL for KiCanvas:', {
+          url: fileUrl,
+          mimeType: mimeType,
+          fileSize: fileContent.length,
+          filename: this.basename,
+          method: 'File object blob URL'
+        });
+        
+        // Set reactive data - Vue will handle updating the DOM
+        this.kicanvasSrc = fileUrl;
+        this.kicanvasType = mimeType;
+        this.kicanvasFilename = this.basename;
+        this.kicanvasFormat = fileExtension;
+        
+        enhancedLogger.debug('Set reactive kicanvas properties:', {
+          src: fileUrl,
+          type: mimeType,
+          filename: this.basename,
+          format: fileExtension
+        });
+        
+        // Clean up the URL after KiCanvas has loaded it
+        setTimeout(() => {
           try {
-            // Create a File object instead of plain Blob to preserve filename
-            const file = new File([fileContent], this.basename, { type: mimeType });
-            fileUrl = URL.createObjectURL(file);
-            enhancedLogger.debug('Using File object blob URL approach for KiCanvas');
-          } catch (fileError) {
-            // Fallback to regular blob if File constructor not supported
-            const blob = new Blob([fileContent], { type: mimeType });
-            fileUrl = URL.createObjectURL(blob);
-            enhancedLogger.debug('Using regular blob URL approach for KiCanvas');
+            URL.revokeObjectURL(fileUrl);
+            enhancedLogger.debug('Cleaned up blob URL');
+          } catch (e) {
+            // Ignore cleanup errors
           }
-          
-          // Clean up the URL after KiCanvas has loaded it
-          setTimeout(() => {
-            try {
-              URL.revokeObjectURL(fileUrl);
-              enhancedLogger.debug('Cleaned up blob URL');
-            } catch (e) {
-              // Ignore cleanup errors
-            }
-          }, 30000);
-          
-          enhancedLogger.debug('Created file URL for KiCanvas:', {
-            url: fileUrl,
-            mimeType: mimeType,
-            fileSize: fileContent.length,
-            filename: this.basename,
-            method: 'File object blob URL'
-          });
-          
-          // Set the src attribute directly on kicanvas-embed (this is the correct way)
-          this.kicanvasEmbed.setAttribute('src', fileUrl);
-          this.kicanvasEmbed.setAttribute('controls', 'basic');
-          
-          // Help KiCanvas identify the file type by setting additional attributes
-          this.kicanvasEmbed.setAttribute('type', mimeType);
-          this.kicanvasEmbed.setAttribute('data-filename', this.basename);
-          this.kicanvasEmbed.setAttribute('data-format', fileExtension);
-          
-          enhancedLogger.debug('Set src attribute on kicanvas-embed successfully');
-          
-        } catch (err) {
-          enhancedLogger.error('Failed to set content on kicanvas-embed:', err);
-          return;
-        }
+        }, 30000);
 
-        // Try to trigger any refresh/update methods
-        this.refreshKiCanvas();
-
-        enhancedLogger.info('=== KiCanvas initialization completed successfully ===');
+        enhancedLogger.info('=== KiCanvas initialization completed successfully (Vue reactive) ===');
       } catch (error) {
         enhancedLogger.error('=== KiCanvas initialization failed ===', error);
       }
     },
     
-    
-    refreshKiCanvas() {
-      try {
-        // Try multiple ways to refresh/update the canvas
-        if (this.kicanvasEmbed) {
-          if (typeof this.kicanvasEmbed.refresh === 'function') {
-            this.kicanvasEmbed.refresh();
-            enhancedLogger.debug('Called refresh() method');
-          } else if (typeof this.kicanvasEmbed.update === 'function') {
-            this.kicanvasEmbed.update();
-            enhancedLogger.debug('Called update() method');
-          } else if (typeof this.kicanvasEmbed.render === 'function') {
-            this.kicanvasEmbed.render();
-            enhancedLogger.debug('Called render() method');
-          } else {
-            enhancedLogger.debug('No refresh methods available');
-          }
-        }
-      } catch (error) {
-        enhancedLogger.debug('Refresh failed (not critical):', error.message);
-      }
-    },
     getKiCadMimeType(extension) {
       // Map KiCad file extensions to appropriate mime types
       const mimeMap = {

@@ -9,8 +9,15 @@ SPDX-License-Identifier: AGPL-3.0-or-later
       <div v-if="isLoading" :class="$style.loadingContainer">
         <div :style="{ backgroundImage: `url('${appIconUrl}')` }"></div>
       </div>
-      <kicanvas-embed v-else controls="full" :class="$style.kicanvasEmbed">
-        <!-- Sources will be dynamically inserted here -->
+      <kicanvas-embed 
+        v-else 
+        :src="kicanvasSrc"
+        :type="kicanvasType"
+        :data-filename="kicanvasFilename"
+        :data-format="kicanvasFormat"
+        controls="basic" 
+        :class="$style.kicanvasEmbed">
+        <!-- Vue will handle the reactive updates -->
       </kicanvas-embed>
     </section>
   </div>
