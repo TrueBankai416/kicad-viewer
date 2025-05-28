@@ -190,7 +190,10 @@ config.optimization = {
       terserOptions: {
         parse: {},
         compress: {
-          drop_console: !(tierIsDevelopment || tierIsTesting),
+          // Allow console logs to be preserved in all build modes
+          drop_console: false,
+          // We can still drop specific console methods if needed
+          // drop_console: tierIsProduction && ['log'],
         },
         mangle: false,
         module: false,
@@ -239,12 +242,6 @@ config.plugins.push(new VueLoaderPlugin());
 // CopyPlugin
 config.plugins.push(new CopyPlugin({
   patterns: [
-    {
-      from: pathResolve(cjsDirname, 'src/img/envmaps/dist'),
-      to: pathResolve(cjsDirname, 'img/envmaps/'),
-      toType: 'dir',
-      force: true,
-    },
     {
       from: pathResolve(cjsDirname, 'src/img/icons-mime/dist'),
       to: pathResolve(cjsDirname, 'img/icons-mime/'),
