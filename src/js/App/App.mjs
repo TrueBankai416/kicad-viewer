@@ -124,9 +124,29 @@ export default {
           return;
         }
 
-        // Clear any existing sources
-        while (this.kicanvasEmbed.firstChild) {
-          this.kicanvasEmbed.removeChild(this.kicanvasEmbed.firstChild);
+        // Clear any existing sources safely
+        try {
+          enhancedLogger.debug('Clearing existing sources from kicanvas-embed');
+          // Try modern approach first
+          if (typeof this.kicanvasEmbed.replaceChildren === 'function') {
+            this.kicanvasEmbed.replaceChildren();
+            enhancedLogger.debug('Cleared using replaceChildren()');
+          } else {
+            // Fallback to innerHTML if removeChild is not supported
+            try {
+              while (this.kicanvasEmbed.firstChild) {
+                this.kicanvasEmbed.removeChild(this.kicanvasEmbed.firstChild);
+              }
+              enhancedLogger.debug('Cleared using removeChild()');
+            } catch (removeError) {
+              enhancedLogger.debug('removeChild not supported, trying innerHTML method');
+              this.kicanvasEmbed.innerHTML = '';
+              enhancedLogger.debug('Cleared using innerHTML');
+            }
+          }
+        } catch (err) {
+          enhancedLogger.warn('Could not clear existing sources:', err.message);
+          // Continue anyway, this is not critical
         }
 
         // Create source element with proper file type
