@@ -197,15 +197,9 @@ export default {
           // Get appropriate mime type for this file extension
           const mimeType = this.getKiCadMimeType(fileExtension);
 
-          // Convert to base64 - handle Unicode correctly without deprecated unescape()
-          // Use a more robust approach that handles large files
-          const bytes = new TextEncoder().encode(fileContent);
-          let binary = '';
-          const chunkSize = 0x8000; // 32KB chunks to avoid call stack limits
-          for (let i = 0; i < bytes.length; i += chunkSize) {
-            binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-          }
-          const base64Content = btoa(binary);
+          // Convert to base64 properly for UTF-8 content
+          // Use TextEncoder to get UTF-8 bytes, then convert to base64
+          const base64Content = this.encodeUtf8ToBase64(fileContent);
           const dataUrl = `data:${mimeType};base64,${base64Content}`;
 
           // Set source attribute
@@ -264,6 +258,20 @@ export default {
       }
 
       return loadSuccess;
+    },
+    encodeUtf8ToBase64(str) {
+      // Convert string to UTF-8 bytes
+      const utf8Bytes = new TextEncoder().encode(str);
+      
+      // Convert bytes to base64 using built-in methods
+      // Create a binary string from the bytes, ensuring each byte stays in Latin1 range
+      let binaryString = '';
+      for (let i = 0; i < utf8Bytes.length; i++) {
+        binaryString += String.fromCharCode(utf8Bytes[i]);
+      }
+      
+      // Now encode to base64
+      return btoa(binaryString);
     },
     async fetchKiCadFile (url, filename) {
       try {
