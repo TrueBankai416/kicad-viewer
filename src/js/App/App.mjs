@@ -162,43 +162,39 @@ export default {
           
           const mimeType = this.getKiCadMimeType(fileExtension);
           let fileUrl;
-          let useDataUrl = false;
           
-          // Try data URL approach first (includes filename in URL)
-          if (fileContent.length < 1000000) { // Only for files < 1MB
-            try {
-              const base64Content = this.encodeUtf8ToBase64(fileContent);
-              fileUrl = `data:${mimeType};base64,${base64Content}`;
-              useDataUrl = true;
-              enhancedLogger.debug('Using data URL approach for KiCanvas');
-            } catch (dataUrlError) {
-              enhancedLogger.debug('Data URL approach failed, falling back to blob URL');
-            }
-          }
+          // Use File object approach which preserves filename better for KiCanvas
+          enhancedLogger.debug('Using File object approach for better filename preservation');
           
-          // Fallback to blob URL if data URL not used
-          if (!useDataUrl) {
+          // Use File object blob URL approach (preserves filename)
+          try {
+            // Create a File object instead of plain Blob to preserve filename
+            const file = new File([fileContent], this.basename, { type: mimeType });
+            fileUrl = URL.createObjectURL(file);
+            enhancedLogger.debug('Using File object blob URL approach for KiCanvas');
+          } catch (fileError) {
+            // Fallback to regular blob if File constructor not supported
             const blob = new Blob([fileContent], { type: mimeType });
             fileUrl = URL.createObjectURL(blob);
-            enhancedLogger.debug('Using blob URL approach for KiCanvas');
-            
-            // Clean up the URL after KiCanvas has loaded it
-            setTimeout(() => {
-              try {
-                URL.revokeObjectURL(fileUrl);
-                enhancedLogger.debug('Cleaned up blob URL');
-              } catch (e) {
-                // Ignore cleanup errors
-              }
-            }, 30000);
+            enhancedLogger.debug('Using regular blob URL approach for KiCanvas');
           }
           
+          // Clean up the URL after KiCanvas has loaded it
+          setTimeout(() => {
+            try {
+              URL.revokeObjectURL(fileUrl);
+              enhancedLogger.debug('Cleaned up blob URL');
+            } catch (e) {
+              // Ignore cleanup errors
+            }
+          }, 30000);
+          
           enhancedLogger.debug('Created file URL for KiCanvas:', {
-            url: useDataUrl ? 'data URL (truncated)' : fileUrl,
+            url: fileUrl,
             mimeType: mimeType,
             fileSize: fileContent.length,
             filename: this.basename,
-            method: useDataUrl ? 'data URL' : 'blob URL'
+            method: 'File object blob URL'
           });
           
           // Set the src attribute directly on kicanvas-embed (this is the correct way)
