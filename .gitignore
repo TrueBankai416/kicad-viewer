@@ -132,7 +132,7 @@ dist
 
 # Lock Files
 package-lock.json
-composer-lock.json
+composer.lock
 
 # Build output
 /js
