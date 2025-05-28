@@ -129,5 +129,10 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
+
 # Package Files
 package-lock.json
+
+# Build output
+/js
+/img
