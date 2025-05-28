@@ -112,105 +112,123 @@ export default {
       }
     },
     initKiCanvas(fileContent, fileExtension) {
+      enhancedLogger.info('=== Starting KiCanvas initialization ===');
+      
       try {
-        enhancedLogger.debug('Initializing KiCanvas');
-        const container = this.$el.querySelector(
-          `.${this.$style.containCanvas}`,
-        );
-        this.kicanvasEmbed = container.querySelector('kicanvas-embed');
-
-        if (!this.kicanvasEmbed) {
-          enhancedLogger.error('KiCanvas embed element not found');
+        // Find the container
+        const container = this.$el.querySelector(`.${this.$style.containCanvas}`);
+        if (!container) {
+          enhancedLogger.error('Canvas container not found');
           return;
         }
+        enhancedLogger.debug('Canvas container found');
 
-        // Clear any existing sources safely
-        try {
-          enhancedLogger.debug('Clearing existing sources from kicanvas-embed');
-          // Try modern approach first
-          if (typeof this.kicanvasEmbed.replaceChildren === 'function') {
-            this.kicanvasEmbed.replaceChildren();
-            enhancedLogger.debug('Cleared using replaceChildren()');
-          } else {
-            // Fallback to innerHTML if removeChild is not supported
+        // Find or create the kicanvas-embed element
+        this.kicanvasEmbed = container.querySelector('kicanvas-embed');
+        if (!this.kicanvasEmbed) {
+          enhancedLogger.error('KiCanvas embed element not found in container');
+          return;
+        }
+        enhancedLogger.debug('Found kicanvas-embed element');
+
+        // Instead of manipulating children, recreate the entire embed element
+        // This avoids any DOM operation issues with the custom element
+        const parent = this.kicanvasEmbed.parentNode;
+        const newEmbed = document.createElement('kicanvas-embed');
+        
+        // Copy any important attributes from the old embed
+        if (this.kicanvasEmbed.hasAttributes()) {
+          for (let attr of this.kicanvasEmbed.attributes) {
             try {
-              while (this.kicanvasEmbed.firstChild) {
-                this.kicanvasEmbed.removeChild(this.kicanvasEmbed.firstChild);
-              }
-              enhancedLogger.debug('Cleared using removeChild()');
-            } catch (removeError) {
-              enhancedLogger.debug('removeChild not supported, trying innerHTML method');
-              this.kicanvasEmbed.innerHTML = '';
-              enhancedLogger.debug('Cleared using innerHTML');
+              newEmbed.setAttribute(attr.name, attr.value);
+            } catch (e) {
+              enhancedLogger.debug('Could not copy attribute:', attr.name);
             }
           }
-        } catch (err) {
-          enhancedLogger.warn('Could not clear existing sources:', err.message);
-          // Continue anyway, this is not critical
         }
 
-        // Create source element with proper file type
-        let sourceElement;
+        // Replace the old embed with the new one
         try {
-          enhancedLogger.debug('Creating kicanvas-source element');
-          sourceElement = document.createElement('kicanvas-source');
-          enhancedLogger.debug('kicanvas-source element created successfully');
+          parent.replaceChild(newEmbed, this.kicanvasEmbed);
+          this.kicanvasEmbed = newEmbed;
+          enhancedLogger.debug('Successfully replaced kicanvas-embed element');
         } catch (err) {
-          enhancedLogger.error('Failed to create kicanvas-source element:', err);
+          enhancedLogger.warn('Could not replace embed element, continuing with original:', err.message);
+        }
+
+        // Create the source element with content
+        const sourceElement = this.createKiCanvasSourceElement(fileContent, fileExtension);
+        if (!sourceElement) {
+          enhancedLogger.error('Failed to create source element');
           return;
         }
 
+        // Add the source to the embed
         try {
-          enhancedLogger.debug('Setting name attribute to:', this.basename);
-          sourceElement.setAttribute('name', this.basename);
-          enhancedLogger.debug('Name attribute set successfully');
-        } catch (err) {
-          enhancedLogger.error('Failed to set name attribute:', err);
-          return;
-        }
-
-        try {
-          const mimeType = this.getKiCadMimeType(fileExtension);
-          enhancedLogger.debug('Setting type attribute to:', mimeType);
-          sourceElement.setAttribute('type', mimeType);
-          enhancedLogger.debug('Type attribute set successfully');
-        } catch (err) {
-          enhancedLogger.error('Failed to set type attribute:', err);
-          return;
-        }
-
-        // Load content safely with error boundary
-        try {
-          enhancedLogger.debug('Loading content into KiCanvas');
-          this.loadContentIntoKiCanvas(sourceElement, fileContent, fileExtension);
-          enhancedLogger.debug('Content loading completed');
-        } catch (err) {
-          enhancedLogger.error('Error in loadContentIntoKiCanvas:', err);
-        }
-
-        // Add the source to the embed element
-        try {
-          enhancedLogger.debug('Appending source element to kicanvas-embed');
           this.kicanvasEmbed.appendChild(sourceElement);
-          enhancedLogger.debug('Source element appended successfully');
+          enhancedLogger.debug('Successfully added source to embed');
         } catch (err) {
-          enhancedLogger.error('Failed to append source element:', err);
+          enhancedLogger.error('Failed to add source to embed:', err);
           return;
         }
 
-        // Force KiCanvas to refresh/render
-        try {
+        // Try to trigger any refresh/update methods
+        this.refreshKiCanvas();
+
+        enhancedLogger.info('=== KiCanvas initialization completed successfully ===');
+      } catch (error) {
+        enhancedLogger.error('=== KiCanvas initialization failed ===', error);
+      }
+    },
+    
+    createKiCanvasSourceElement(fileContent, fileExtension) {
+      try {
+        enhancedLogger.debug('Creating new kicanvas-source element');
+        const sourceElement = document.createElement('kicanvas-source');
+        
+        // Set basic attributes
+        sourceElement.setAttribute('name', this.basename);
+        const mimeType = this.getKiCadMimeType(fileExtension);
+        sourceElement.setAttribute('type', mimeType);
+        
+        enhancedLogger.debug('Source element created with:', {
+          name: this.basename,
+          type: mimeType,
+          extension: fileExtension
+        });
+
+        // Load content using the safest approach first
+        const contentLoaded = this.loadContentIntoKiCanvas(sourceElement, fileContent, fileExtension);
+        if (!contentLoaded) {
+          enhancedLogger.warn('Content loading failed, but continuing');
+        }
+
+        return sourceElement;
+      } catch (error) {
+        enhancedLogger.error('Failed to create source element:', error);
+        return null;
+      }
+    },
+    
+    refreshKiCanvas() {
+      try {
+        // Try multiple ways to refresh/update the canvas
+        if (this.kicanvasEmbed) {
           if (typeof this.kicanvasEmbed.refresh === 'function') {
             this.kicanvasEmbed.refresh();
-            enhancedLogger.debug('Called refresh() on kicanvas-embed');
+            enhancedLogger.debug('Called refresh() method');
+          } else if (typeof this.kicanvasEmbed.update === 'function') {
+            this.kicanvasEmbed.update();
+            enhancedLogger.debug('Called update() method');
+          } else if (typeof this.kicanvasEmbed.render === 'function') {
+            this.kicanvasEmbed.render();
+            enhancedLogger.debug('Called render() method');
+          } else {
+            enhancedLogger.debug('No refresh methods available');
           }
-        } catch (err) {
-          enhancedLogger.debug('Refresh not available:', err.message);
         }
-
-        enhancedLogger.info('KiCanvas initialized successfully');
       } catch (error) {
-        enhancedLogger.error('Error initializing KiCanvas:', error);
+        enhancedLogger.debug('Refresh failed (not critical):', error.message);
       }
     },
     getKiCadMimeType(extension) {
