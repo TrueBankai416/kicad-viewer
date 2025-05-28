@@ -130,19 +130,53 @@ export default {
         }
 
         // Create source element with proper file type
-        const sourceElement = document.createElement('kicanvas-source');
-        sourceElement.setAttribute('name', this.basename);
-        sourceElement.setAttribute('type', this.getKiCadMimeType(fileExtension));
+        let sourceElement;
+        try {
+          enhancedLogger.debug('Creating kicanvas-source element');
+          sourceElement = document.createElement('kicanvas-source');
+          enhancedLogger.debug('kicanvas-source element created successfully');
+        } catch (err) {
+          enhancedLogger.error('Failed to create kicanvas-source element:', err);
+          return;
+        }
+
+        try {
+          enhancedLogger.debug('Setting name attribute to:', this.basename);
+          sourceElement.setAttribute('name', this.basename);
+          enhancedLogger.debug('Name attribute set successfully');
+        } catch (err) {
+          enhancedLogger.error('Failed to set name attribute:', err);
+          return;
+        }
+
+        try {
+          const mimeType = this.getKiCadMimeType(fileExtension);
+          enhancedLogger.debug('Setting type attribute to:', mimeType);
+          sourceElement.setAttribute('type', mimeType);
+          enhancedLogger.debug('Type attribute set successfully');
+        } catch (err) {
+          enhancedLogger.error('Failed to set type attribute:', err);
+          return;
+        }
 
         // Load content safely with error boundary
         try {
+          enhancedLogger.debug('Loading content into KiCanvas');
           this.loadContentIntoKiCanvas(sourceElement, fileContent, fileExtension);
+          enhancedLogger.debug('Content loading completed');
         } catch (err) {
           enhancedLogger.error('Error in loadContentIntoKiCanvas:', err);
         }
 
         // Add the source to the embed element
-        this.kicanvasEmbed.appendChild(sourceElement);
+        try {
+          enhancedLogger.debug('Appending source element to kicanvas-embed');
+          this.kicanvasEmbed.appendChild(sourceElement);
+          enhancedLogger.debug('Source element appended successfully');
+        } catch (err) {
+          enhancedLogger.error('Failed to append source element:', err);
+          return;
+        }
 
         // Force KiCanvas to refresh/render
         try {
@@ -175,6 +209,9 @@ export default {
     loadContentIntoKiCanvas(sourceElement, fileContent, fileExtension) {
       // We'll still try multiple approaches, but in a more robust way
       let loadSuccess = false;
+      
+      enhancedLogger.debug('Starting loadContentIntoKiCanvas with file extension:', fileExtension);
+      enhancedLogger.debug('File content length:', fileContent.length);
 
       // Approach 1: Direct content setting
       if (!loadSuccess) {
@@ -184,45 +221,41 @@ export default {
             sourceElement.setContent(fileContent);
             enhancedLogger.debug('Direct content setting successful');
             loadSuccess = true;
+          } else {
+            enhancedLogger.debug('setContent method not available');
           }
         } catch (err) {
-          enhancedLogger.debug('Direct content setting failed:', err.message);
+          enhancedLogger.debug('Direct content setting failed:', err.message, err);
         }
       }
 
-      // Approach 2: Data URL with proper mime type
+      // Approach 2: Simple text content (try this before complex encoding)
       if (!loadSuccess) {
         try {
-          enhancedLogger.debug('Trying data URL approach');
-          // Get appropriate mime type for this file extension
-          const mimeType = this.getKiCadMimeType(fileExtension);
-
-          // Convert to base64 properly for UTF-8 content
-          // Use TextEncoder to get UTF-8 bytes, then convert to base64
-          const base64Content = this.encodeUtf8ToBase64(fileContent);
-          const dataUrl = `data:${mimeType};base64,${base64Content}`;
-
-          // Set source attribute
-          sourceElement.setAttribute('src', dataUrl);
+          enhancedLogger.debug('Trying simple text content approach');
+          sourceElement.textContent = fileContent;
           sourceElement.setAttribute('data-format', fileExtension);
-          enhancedLogger.debug('Data URL approach successful with mime type:', mimeType);
+          enhancedLogger.debug('Simple text content approach successful');
           loadSuccess = true;
         } catch (err) {
-          enhancedLogger.warn('Data URL approach failed:', err.message);
+          enhancedLogger.debug('Simple text content approach failed:', err.message, err);
         }
       }
 
-      // Approach 3: Blob URL
+      // Approach 3: Blob URL (safer than data URL for large content)
       if (!loadSuccess && !window.kiCanvasBlobUrlsNotSupported) {
         try {
           enhancedLogger.debug('Trying blob URL approach');
 
           // Create blob with proper mime type
           const mimeType = this.getKiCadMimeType(fileExtension);
+          enhancedLogger.debug('Creating blob with mime type:', mimeType);
+          
           const blob = new Blob([fileContent], { type: mimeType });
+          enhancedLogger.debug('Blob created successfully, size:', blob.size);
 
           const fileUrl = URL.createObjectURL(blob);
-          enhancedLogger.debug('Created Blob URL for file content with mime type:', mimeType);
+          enhancedLogger.debug('Created Blob URL for file content:', fileUrl);
 
           // Set source attribute
           sourceElement.setAttribute('src', fileUrl);
@@ -237,24 +270,34 @@ export default {
             }
           }, 30000);
 
+          enhancedLogger.debug('Blob URL approach successful');
           loadSuccess = true;
         } catch (err) {
-          enhancedLogger.warn('Blob URL approach failed:', err.message);
+          enhancedLogger.warn('Blob URL approach failed:', err.message, err);
           window.kiCanvasBlobUrlsNotSupported = true;
         }
       }
 
-      // Last resort: Set raw content
-      if (!loadSuccess) {
+      // Approach 4: Data URL with proper mime type (only for smaller files)
+      if (!loadSuccess && fileContent.length < 1000000) {
         try {
-          enhancedLogger.debug('Falling back to setting raw content directly');
-          sourceElement.textContent = fileContent;
+          enhancedLogger.debug('Trying data URL approach for smaller file');
+          const mimeType = this.getKiCadMimeType(fileExtension);
+          const base64Content = this.encodeUtf8ToBase64(fileContent);
+          const dataUrl = `data:${mimeType};base64,${base64Content}`;
+          sourceElement.setAttribute('src', dataUrl);
           sourceElement.setAttribute('data-format', fileExtension);
-          enhancedLogger.debug('Set raw content with data-format:', fileExtension);
+          enhancedLogger.debug('Data URL approach successful with mime type:', mimeType);
           loadSuccess = true;
         } catch (err) {
-          enhancedLogger.error('All content loading approaches failed');
+          enhancedLogger.warn('Data URL approach failed:', err.message, err);
         }
+      }
+
+      if (!loadSuccess) {
+        enhancedLogger.error('All content loading approaches failed');
+      } else {
+        enhancedLogger.debug('Content loading successful');
       }
 
       return loadSuccess;
