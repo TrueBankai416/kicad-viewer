@@ -1,0 +1,20 @@
+# System dependencies for KiCAD Viewer Nextcloud App
+# 
+# These are the required system packages/tools needed to build and run the app
+# Some may need to be installed manually depending on your system
+
+# Build tools
+make
+curl
+tar
+
+# PHP and package manager
+php
+composer
+
+# Node.js and package manager  
+node
+npm
+
+# Additional utilities
+whichcd

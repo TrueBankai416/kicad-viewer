@@ -245,12 +245,20 @@ config.plugins.push(new CopyPlugin({
       to: pathResolve(cjsDirname, 'img/icons-mime/'),
       toType: 'dir',
       force: true,
+      noErrorOnMissing: true,
+      globOptions: {
+        ignore: ['**/.gitkeep'],
+      },
     },
     {
       from: pathResolve(cjsDirname, 'src/img/icons-app/dist'),
       to: pathResolve(cjsDirname, 'img/'),
       toType: 'dir',
       force: true,
+      noErrorOnMissing: true,
+      globOptions: {
+        ignore: ['**/.gitkeep'],
+      },
     },
   ],
   options: {
