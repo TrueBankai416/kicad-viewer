@@ -3,7 +3,7 @@
         'name' => 'pytonballoon810/kicad_viewer',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '55b87d8fb969ada887708bed6cf206f4fe432559',
+        'reference' => '4579065109e29243e12507fcabdec99d03ee109d',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'pytonballoon810/kicad_viewer' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '55b87d8fb969ada887708bed6cf206f4fe432559',
+            'reference' => '4579065109e29243e12507fcabdec99d03ee109d',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

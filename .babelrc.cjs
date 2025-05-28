@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 // keep json compatible key naming (double quotes) and comma trailing
-/* eslint-disable quotes, quote-props */
 
 // Babel supports ESM configuration, but babel-loader still chokes
 

@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: Nextcloud contributors
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-/* eslint-disable prefer-const, brace-style, no-unused-vars */
-
 'use strict';
 
 import {
@@ -16,7 +14,7 @@ import {
 
 import webpack from 'webpack';
 import TerserPlugin from 'terser-webpack-plugin';
-import CopyPlugin from 'copy-webpack-plugin'; // eslint-disable-line import/default
+import CopyPlugin from 'copy-webpack-plugin';
 import {VueLoaderPlugin} from 'vue-loader';
 
 // ----------------
@@ -281,13 +279,5 @@ config.plugins.push(new CopyPlugin({
 // ----------------
 // BABEL CONFIG
 // defined in .babelrc.cjs
-
-// ----------------
-// ESLINT CONFIG
-// defined in .eslintrc.cjs and .eslintignore
-
-// ----------------
-// STYLELINT CONFIG
-// defined in .stylelintrc.cjs and .stylelintignore
 
 export default config;

@@ -2,11 +2,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 // keep json compatible key naming (double quotes) and comma trailing
-/* eslint-disable quotes, quote-props */
 
 // Align with Nextcloud
 // https://github.com/nextcloud/stylelint-config
-// const stylelintConfig = require('@nextcloud/stylelint-config'); // eslint-disable-line
+// const stylelintConfig = require('@nextcloud/stylelint-config');
 // module.exports = stylelintConfig;
 
 // do not include, but unroll manually and extend

@@ -1,20 +1,14 @@
 {
-  // disable VSCode built in syntax validation so that ESLint is used
-  "javascript.validate.enable": false,
+  "javascript.validate.enable": true,
   "html.validate.scripts": false,
-  // disable VSCode built in syntax validation so that ESLint typescript-eslint is used
-  "typescript.validate.enable": false,
+  "typescript.validate.enable": true,
   // disable VSCode built in syntax validation so that Stylelint is used
   "html.validate.styles": false,
   "css.validate": false,
   "less.validate": false,
   "scss.validate": false,
   // ----------------
-  // prettier disable
-  "prettier.enable": false,
-  // eslint enable
-  "eslint.enable": true,
-  "eslint.format.enable": true,
+  "prettier.enable": true,
   // clear default formater
   "editor.defaultFormatter": null, // set default formater to null and enable per language as needed
   // @builtin javascript
@@ -23,20 +17,10 @@
   "javascript.suggest.completeFunctionCalls": true,
   // set options per language
   "[javascript]": {
-    "editor.defaultFormatter": "rvest.vs-code-prettier-eslint",
     "editor.insertSpaces": true, // OVERRIDE per language
     "editor.trimAutoWhitespace": false, // because of space between function name and parenthesis
     "files.trimFinalNewlines": false, // on save keep one newline always
     "files.trimTrailingWhitespace": true, // on save remove trailing whitespaces
-  },
-  "[javascriptreact]": {
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
-  },
-  "[typescript]": {
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
-  },
-  "[typescriptreact]": {
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
   },
   "[markdown]": {
     "files.trimTrailingWhitespace": false // because editorconfig has issues picking up
