@@ -130,8 +130,9 @@ dist
 .pnp.*
 
 
-# Package Files
+# Lock Files
 package-lock.json
+composer-lock.json
 
 # Build output
 /js
