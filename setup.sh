@@ -88,10 +88,46 @@ check_dependencies() {
     if [ ${#missing_deps[@]} -gt 0 ]; then
         echo -e "${RED}Missing dependencies:${NC} ${missing_deps[*]}"
         echo
-        echo "Please install the missing dependencies before continuing."
-        echo "On Ubuntu/Debian: sudo apt-get install ${missing_deps[*]}"
-        echo "On CentOS/RHEL: sudo yum install ${missing_deps[*]}"
-        echo "On macOS: brew install ${missing_deps[*]}"
+        echo "Please install the missing dependencies before continuing:"
+        echo
+        
+        # Provide correct package names for different systems
+        local ubuntu_packages=""
+        local centos_packages=""
+        local macos_packages=""
+        
+        for dep in "${missing_deps[@]}"; do
+            case $dep in
+                "node")
+                    ubuntu_packages+="nodejs "
+                    centos_packages+="nodejs "
+                    macos_packages+="node "
+                    ;;
+                "npm")
+                    ubuntu_packages+="npm "
+                    centos_packages+="npm "
+                    macos_packages+="npm "
+                    ;;
+                *)
+                    ubuntu_packages+="$dep "
+                    centos_packages+="$dep "
+                    macos_packages+="$dep "
+                    ;;
+            esac
+        done
+        
+        echo "On Ubuntu/Debian:"
+        echo "  sudo apt-get update && sudo apt-get install $ubuntu_packages"
+        echo
+        echo "On CentOS/RHEL:"
+        echo "  sudo yum install $centos_packages"
+        echo
+        echo "On macOS:"
+        echo "  brew install $macos_packages"
+        echo
+        echo "Note: For Node.js, we recommend using nvm (Node Version Manager):"
+        echo "  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash"
+        echo "  nvm install node"
         echo
         read -p "Do you want to continue anyway? (y/N): " -n 1 -r
         echo
@@ -109,9 +145,40 @@ check_dependencies() {
 setup_node_deps() {
     echo "Setting up Node.js dependencies..."
     
-    # Check if .nvmrc exists and suggest using nvm
+    # Check if .nvmrc exists and handle nvm
     if [ -f ".nvmrc" ]; then
-        echo "Found .nvmrc file. If you have nvm installed, run 'nvm use' to use the recommended Node.js version."
+        local nvmrc_version=$(cat .nvmrc | head -n1)
+        echo "Found .nvmrc file with recommended Node.js version: $nvmrc_version"
+        
+        # Check if nvm is available
+        if [ -s "$HOME/.nvm/nvm.sh" ]; then
+            echo "Setting up nvm and installing the recommended Node.js version..."
+            
+            # Source nvm
+            \. "$HOME/.nvm/nvm.sh"
+            
+            # Install the version from .nvmrc if not already installed
+            echo "Installing Node.js version from .nvmrc..."
+            nvm install
+            
+            # Use the version from .nvmrc
+            echo "Switching to Node.js version from .nvmrc..."
+            nvm use
+            
+            echo -e "${GREEN}✓${NC} Using Node.js $(node --version) via nvm"
+        else
+            echo -e "${YELLOW}!${NC} nvm not found, using system Node.js $(node --version)"
+            echo "For best compatibility, install nvm first and run this script again:"
+            echo "  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash"
+            echo "  source ~/.bashrc"
+            echo "  ./setup.sh"
+            echo
+            echo "Or manually run these commands before the build:"
+            echo "  \\. \"\$HOME/.nvm/nvm.sh\""
+            echo "  nvm install"
+            echo "  nvm use"
+            echo "  npm install"
+        fi
         echo
     fi
     
