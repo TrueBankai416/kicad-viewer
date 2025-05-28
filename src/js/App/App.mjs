@@ -115,34 +115,31 @@ export default {
       }
     },
     initKiCanvas(fileContent, fileExtension) {
-      enhancedLogger.info('=== Starting KiCanvas initialization (Vue reactive approach) ===');
+      enhancedLogger.info('=== Starting KiCanvas initialization (server endpoint approach) ===');
       
       try {
         const mimeType = this.getKiCadMimeType(fileExtension);
-        let fileUrl;
         
-        // Use File object approach which preserves filename better for KiCanvas
-        enhancedLogger.debug('Using File object approach for better filename preservation');
+        // Instead of blob URLs, use our server endpoint that preserves filename in URL
+        enhancedLogger.debug('Using server endpoint approach for proper filename in URL');
         
-        // Create File object blob URL approach (preserves filename)
-        try {
-          // Create a File object instead of plain Blob to preserve filename
-          const file = new File([fileContent], this.basename, { type: mimeType });
-          fileUrl = URL.createObjectURL(file);
-          enhancedLogger.debug('Using File object blob URL approach for KiCanvas');
-        } catch (fileError) {
-          // Fallback to regular blob if File constructor not supported
-          const blob = new Blob([fileContent], { type: mimeType });
-          fileUrl = URL.createObjectURL(blob);
-          enhancedLogger.debug('Using regular blob URL approach for KiCanvas');
-        }
+        // Extract the file path from the source URL
+        // davPath format: /remote.php/dav/files/admin/filename.kicad_sch
+        const filePath = this.davPath.replace('/remote.php/dav/files/' + OC.getCurrentUser().uid + '/', '');
         
-        enhancedLogger.debug('Created file URL for KiCanvas:', {
+        // Construct URL to our endpoint with proper filename
+        const fileUrl = generateUrl('/apps/kicad_viewer/api/file/{path}/{filename}', {
+          path: encodeURIComponent(filePath),
+          filename: encodeURIComponent(this.basename)
+        });
+        
+        enhancedLogger.debug('Created server endpoint URL for KiCanvas:', {
           url: fileUrl,
           mimeType: mimeType,
           fileSize: fileContent.length,
           filename: this.basename,
-          method: 'File object blob URL'
+          filePath: filePath,
+          method: 'Server endpoint with filename'
         });
         
         // Set reactive data - Vue will handle updating the DOM
@@ -157,18 +154,8 @@ export default {
           filename: this.basename,
           format: fileExtension
         });
-        
-        // Clean up the URL after KiCanvas has loaded it
-        setTimeout(() => {
-          try {
-            URL.revokeObjectURL(fileUrl);
-            enhancedLogger.debug('Cleaned up blob URL');
-          } catch (e) {
-            // Ignore cleanup errors
-          }
-        }, 30000);
 
-        enhancedLogger.info('=== KiCanvas initialization completed successfully (Vue reactive) ===');
+        enhancedLogger.info('=== KiCanvas initialization completed successfully (server endpoint) ===');
       } catch (error) {
         enhancedLogger.error('=== KiCanvas initialization failed ===', error);
       }
