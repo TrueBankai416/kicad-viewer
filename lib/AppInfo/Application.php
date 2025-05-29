@@ -7,26 +7,18 @@ namespace OCA\kicad_viewer\AppInfo;
 
 use OCA\kicad_viewer\Listener\LoadViewerListener;
 use OCP\AppFramework\App;
-use OCP\AppFramework\Bootstrap\IBootContext;
-use OCP\AppFramework\Bootstrap\IBootstrap;
-use OCP\AppFramework\Bootstrap\IRegistrationContext;
 use OCA\Viewer\Event\LoadViewer;
 
-class Application extends App implements IBootstrap {
+class Application extends App {
 	public const APP_ID = 'kicad_viewer';
 
 	public function __construct() {
 		parent::__construct(self::APP_ID);
-		error_log('DEBUG: kicad_viewer Application constructed with IBootstrap');
-	}
-
-	public function register(IRegistrationContext $context): void {
-		error_log('DEBUG: kicad_viewer register() method called');
-		$context->registerEventListener(LoadViewer::class, LoadViewerListener::class);
-		error_log('DEBUG: kicad_viewer register() method completed');
-	}
-
-	public function boot(IBootContext $context): void {
-		error_log('DEBUG: kicad_viewer boot() method called');
+		error_log('DEBUG: kicad_viewer Application constructed (simple App)');
+		
+		// Register viewer listener directly without IBootstrap
+		$eventDispatcher = \OC::$server->getEventDispatcher();
+		$eventDispatcher->addServiceListener(LoadViewer::class, LoadViewerListener::class);
+		error_log('DEBUG: kicad_viewer LoadViewer listener registered directly');
 	}
 }
