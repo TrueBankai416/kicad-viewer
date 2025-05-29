@@ -14,9 +14,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
         controls="basic" 
         :class="$style.kicanvasEmbed">
         <kicanvas-source 
-          ref="kicanvasSource"
-          :name="kicanvasFilename"
-          :type="kicanvasType">
+          ref="kicanvasSource">
         </kicanvas-source>
       </kicanvas-embed>
     </section>

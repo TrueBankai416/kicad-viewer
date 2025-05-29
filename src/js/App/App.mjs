@@ -49,10 +49,8 @@ export default {
       uuid: `uuid-${uuidv4()}`,
       isLoading: true,
       appIconUrl: generateFilePath(APP_ID, '', 'img/app.svg'),
-      kicanvasContent: null,
-      kicanvasType: null,
+      // Remove all KiCanvas reactive properties to avoid DOMPurify conflicts
       kicanvasFilename: null,
-      kicanvasFormat: null,
     };
   },
   mounted () {
@@ -115,39 +113,38 @@ export default {
       }
     },
     initKiCanvas(fileContent, fileExtension) {
-      enhancedLogger.info('=== Starting KiCanvas initialization (inline content approach) ===');
+      enhancedLogger.info('=== Starting KiCanvas initialization (pure DOM approach) ===');
       
       try {
         const mimeType = this.getKiCadMimeType(fileExtension);
         
-        // Use inline content approach - pass content directly to kicanvas-source
-        enhancedLogger.debug('Using inline content approach with kicanvas-source element');
+        // Use pure DOM manipulation to avoid ALL Vue reactivity and DOMPurify conflicts
+        enhancedLogger.debug('Using pure DOM approach - no Vue reactive properties');
         
-        // Set reactive data - Vue will handle updating the DOM
-        this.kicanvasContent = fileContent;
-        this.kicanvasType = mimeType;
+        // Only set filename for Vue binding, everything else is direct DOM
         this.kicanvasFilename = this.basename;
-        this.kicanvasFormat = fileExtension;
         
-        enhancedLogger.debug('Set reactive kicanvas properties:', {
+        enhancedLogger.debug('File info for KiCanvas:', {
           contentLength: fileContent.length,
           type: mimeType,
           filename: this.basename,
           format: fileExtension,
-          method: 'Inline content'
+          method: 'Pure DOM manipulation'
         });
 
-        enhancedLogger.info('=== KiCanvas initialization completed successfully (inline content) ===');
+        enhancedLogger.info('=== KiCanvas initialization completed successfully (pure DOM) ===');
         
-        // Manually set content using ref to avoid DOMPurify issues
+        // Set all attributes and content directly via DOM to avoid DOMPurify
         this.$nextTick(() => {
           setTimeout(() => {
             const sourceElement = this.$refs.kicanvasSource;
             if (sourceElement) {
-              // Set content directly to bypass Vue reactive system and DOMPurify
+              // Set all attributes directly on DOM element
+              sourceElement.setAttribute('type', mimeType);
+              sourceElement.setAttribute('name', this.basename);
               sourceElement.textContent = fileContent;
               
-              enhancedLogger.debug('Manually set KiCanvas source content:', {
+              enhancedLogger.debug('Manually set KiCanvas source via pure DOM:', {
                 element: sourceElement.tagName,
                 name: sourceElement.getAttribute('name'),
                 type: sourceElement.getAttribute('type'),
