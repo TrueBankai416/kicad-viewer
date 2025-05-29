@@ -49,7 +49,7 @@ export default {
       uuid: `uuid-${uuidv4()}`,
       isLoading: true,
       appIconUrl: generateFilePath(APP_ID, '', 'img/app.svg'),
-      kicanvasSrc: null,
+      kicanvasContent: null,
       kicanvasType: null,
       kicanvasFilename: null,
       kicanvasFormat: null,
@@ -115,66 +115,49 @@ export default {
       }
     },
     initKiCanvas(fileContent, fileExtension) {
-      enhancedLogger.info('=== Starting KiCanvas initialization (blob URL approach) ===');
+      enhancedLogger.info('=== Starting KiCanvas initialization (inline content approach) ===');
       
       try {
         const mimeType = this.getKiCadMimeType(fileExtension);
         
-        // Use blob URL approach since server endpoints are not working yet
-        enhancedLogger.debug('Using blob URL approach since we have file content');
-        
-        // Create blob with proper mime type
-        const blob = new Blob([fileContent], { type: mimeType });
-        const fileUrl = URL.createObjectURL(blob);
-        
-        enhancedLogger.debug('Created blob URL for KiCanvas:', {
-          url: fileUrl,
-          mimeType: mimeType,
-          fileSize: fileContent.length,
-          filename: this.basename,
-          blobSize: blob.size,
-          method: 'Blob URL'
-        });
+        // Use inline content approach - pass content directly to kicanvas-source
+        enhancedLogger.debug('Using inline content approach with kicanvas-source element');
         
         // Set reactive data - Vue will handle updating the DOM
-        this.kicanvasSrc = fileUrl;
+        this.kicanvasContent = fileContent;
         this.kicanvasType = mimeType;
         this.kicanvasFilename = this.basename;
         this.kicanvasFormat = fileExtension;
         
         enhancedLogger.debug('Set reactive kicanvas properties:', {
-          src: fileUrl,
+          contentLength: fileContent.length,
           type: mimeType,
           filename: this.basename,
-          format: fileExtension
+          format: fileExtension,
+          method: 'Inline content'
         });
 
-        // Clean up the URL after a reasonable time
-        setTimeout(() => {
-          try {
-            URL.revokeObjectURL(fileUrl);
-            enhancedLogger.debug('Blob URL cleaned up');
-          } catch (e) {
-            // Ignore revocation errors
-          }
-        }, 60000); // 1 minute
-
-        enhancedLogger.info('=== KiCanvas initialization completed successfully (blob URL) ===');
+        enhancedLogger.info('=== KiCanvas initialization completed successfully (inline content) ===');
         
         // Debug what KiCanvas actually receives
         this.$nextTick(() => {
           setTimeout(() => {
             const embed = document.querySelector('kicanvas-embed');
-            if (embed) {
-              enhancedLogger.debug('KiCanvas DOM attributes after Vue update:', {
-                src: embed.getAttribute('src'),
-                type: embed.getAttribute('type'),
-                dataFilename: embed.getAttribute('data-filename'),
-                dataFormat: embed.getAttribute('data-format'),
-                allAttributes: Array.from(embed.attributes).map(attr => `${attr.name}="${attr.value}"`).join(', ')
+            const source = document.querySelector('kicanvas-source');
+            if (embed && source) {
+              enhancedLogger.debug('KiCanvas DOM structure after Vue update:', {
+                embedElement: embed.tagName,
+                sourceElement: source.tagName,
+                sourceName: source.getAttribute('name'),
+                sourceType: source.getAttribute('type'),
+                sourceContentLength: source.textContent ? source.textContent.length : 0,
+                sourceContent: source.textContent ? source.textContent.substring(0, 100) + '...' : 'NO CONTENT'
               });
             } else {
-              enhancedLogger.error('KiCanvas embed element not found in DOM');
+              enhancedLogger.error('KiCanvas elements not found in DOM', {
+                embed: !!embed,
+                source: !!source
+              });
             }
           }, 100);
         });

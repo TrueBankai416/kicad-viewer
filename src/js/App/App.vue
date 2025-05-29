@@ -11,13 +11,13 @@ SPDX-License-Identifier: AGPL-3.0-or-later
       </div>
       <kicanvas-embed 
         v-else 
-        :src="kicanvasSrc"
-        :type="kicanvasType"
-        :data-filename="kicanvasFilename"
-        :data-format="kicanvasFormat"
         controls="basic" 
         :class="$style.kicanvasEmbed">
-        <!-- Vue will handle the reactive updates -->
+        <kicanvas-source 
+          :name="kicanvasFilename"
+          :type="kicanvasType"
+          v-text="kicanvasContent">
+        </kicanvas-source>
       </kicanvas-embed>
     </section>
   </div>
