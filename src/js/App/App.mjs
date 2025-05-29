@@ -160,6 +160,25 @@ export default {
         }, 60000); // 1 minute
 
         enhancedLogger.info('=== KiCanvas initialization completed successfully (blob URL) ===');
+        
+        // Debug what KiCanvas actually receives
+        this.$nextTick(() => {
+          setTimeout(() => {
+            const embed = document.querySelector('kicanvas-embed');
+            if (embed) {
+              enhancedLogger.debug('KiCanvas DOM attributes after Vue update:', {
+                src: embed.getAttribute('src'),
+                type: embed.getAttribute('type'),
+                dataFilename: embed.getAttribute('data-filename'),
+                dataFormat: embed.getAttribute('data-format'),
+                allAttributes: Array.from(embed.attributes).map(attr => `${attr.name}="${attr.value}"`).join(', ')
+              });
+            } else {
+              enhancedLogger.error('KiCanvas embed element not found in DOM');
+            }
+          }, 100);
+        });
+        
       } catch (error) {
         enhancedLogger.error('=== KiCanvas initialization failed ===', error);
       }
