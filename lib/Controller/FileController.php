@@ -8,24 +8,12 @@ namespace OCA\kicad_viewer\Controller;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\StreamResponse;
-use OCP\Files\IRootFolder;
 use OCP\IRequest;
-use OCP\IUserSession;
 
 class FileController extends Controller {
     
-    private IRootFolder $rootFolder;
-    private IUserSession $userSession;
-    
-    public function __construct(
-        string $appName, 
-        IRequest $request,
-        IRootFolder $rootFolder,
-        IUserSession $userSession
-    ) {
+    public function __construct(string $appName, IRequest $request) {
         parent::__construct($appName, $request);
-        $this->rootFolder = $rootFolder;
-        $this->userSession = $userSession;
     }
     
     /**
@@ -34,12 +22,16 @@ class FileController extends Controller {
      */
     public function getFile(string $path, string $filename): StreamResponse {
         try {
-            $user = $this->userSession->getUser();
+            // Use global Nextcloud services
+            $userSession = \OC::$server->getUserSession();
+            $rootFolder = \OC::$server->getRootFolder();
+            
+            $user = $userSession->getUser();
             if (!$user) {
                 return new StreamResponse('User not found', Http::STATUS_UNAUTHORIZED);
             }
             
-            $userFolder = $this->rootFolder->getUserFolder($user->getUID());
+            $userFolder = $rootFolder->getUserFolder($user->getUID());
             
             // Use filename as the file path since we're passing the same value for both
             $file = $userFolder->get($filename);
