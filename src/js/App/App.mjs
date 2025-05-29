@@ -115,31 +115,25 @@ export default {
       }
     },
     initKiCanvas(fileContent, fileExtension) {
-      enhancedLogger.info('=== Starting KiCanvas initialization (server endpoint approach) ===');
+      enhancedLogger.info('=== Starting KiCanvas initialization (blob URL approach) ===');
       
       try {
         const mimeType = this.getKiCadMimeType(fileExtension);
         
-        // Instead of blob URLs, use our server endpoint that preserves filename in URL
-        enhancedLogger.debug('Using server endpoint approach for proper filename in URL');
+        // Use blob URL approach since server endpoints are not working yet
+        enhancedLogger.debug('Using blob URL approach since we have file content');
         
-        // For now, use just the basename as the path since we're dealing with single files
-        // The PHP controller will need to handle this appropriately
-        const filePath = this.basename;
+        // Create blob with proper mime type
+        const blob = new Blob([fileContent], { type: mimeType });
+        const fileUrl = URL.createObjectURL(blob);
         
-        // Construct URL to our endpoint with proper filename
-        const fileUrl = generateUrl('/apps/kicad_viewer/api/file/{path}/{filename}', {
-          path: encodeURIComponent(filePath),
-          filename: encodeURIComponent(this.basename)
-        });
-        
-        enhancedLogger.debug('Created server endpoint URL for KiCanvas:', {
+        enhancedLogger.debug('Created blob URL for KiCanvas:', {
           url: fileUrl,
           mimeType: mimeType,
           fileSize: fileContent.length,
           filename: this.basename,
-          filePath: filePath,
-          method: 'Server endpoint with filename'
+          blobSize: blob.size,
+          method: 'Blob URL'
         });
         
         // Set reactive data - Vue will handle updating the DOM
@@ -155,7 +149,17 @@ export default {
           format: fileExtension
         });
 
-        enhancedLogger.info('=== KiCanvas initialization completed successfully (server endpoint) ===');
+        // Clean up the URL after a reasonable time
+        setTimeout(() => {
+          try {
+            URL.revokeObjectURL(fileUrl);
+            enhancedLogger.debug('Blob URL cleaned up');
+          } catch (e) {
+            // Ignore revocation errors
+          }
+        }, 60000); // 1 minute
+
+        enhancedLogger.info('=== KiCanvas initialization completed successfully (blob URL) ===');
       } catch (error) {
         enhancedLogger.error('=== KiCanvas initialization failed ===', error);
       }
