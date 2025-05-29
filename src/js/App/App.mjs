@@ -99,13 +99,10 @@ export default {
           fileBasename,
         );
 
-        this.isLoading = false;
         enhancedLogger.debug('File content loaded, length:', fileContent.length);
 
-        // Initialize KiCanvas after the DOM is updated and loading is done
-        this.$nextTick(() => {
-          this.initKiCanvas(fileContent, fileExtension);
-        });
+        // Initialize KiCanvas first, then stop loading to avoid DOMPurify triggers
+        this.initKiCanvas(fileContent, fileExtension);
       }
       catch (error) {
         enhancedLogger.error('Error loading KiCad file:', error);
@@ -158,14 +155,20 @@ export default {
                 embed.update();
                 enhancedLogger.debug('Called KiCanvas embed.update()');
               }
+              
+              // Now safe to stop loading after content is set
+              this.isLoading = false;
+              enhancedLogger.debug('Loading state changed after KiCanvas setup');
             } else {
               enhancedLogger.error('KiCanvas source ref not found');
+              this.isLoading = false; // Stop loading even on error
             }
           }, 100);
         });
         
       } catch (error) {
         enhancedLogger.error('=== KiCanvas initialization failed ===', error);
+        this.isLoading = false; // Stop loading on error
       }
     },
     
