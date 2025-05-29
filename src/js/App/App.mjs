@@ -139,25 +139,30 @@ export default {
 
         enhancedLogger.info('=== KiCanvas initialization completed successfully (inline content) ===');
         
-        // Debug what KiCanvas actually receives
+        // Manually set content using ref to avoid DOMPurify issues
         this.$nextTick(() => {
           setTimeout(() => {
-            const embed = document.querySelector('kicanvas-embed');
-            const source = document.querySelector('kicanvas-source');
-            if (embed && source) {
-              enhancedLogger.debug('KiCanvas DOM structure after Vue update:', {
-                embedElement: embed.tagName,
-                sourceElement: source.tagName,
-                sourceName: source.getAttribute('name'),
-                sourceType: source.getAttribute('type'),
-                sourceContentLength: source.textContent ? source.textContent.length : 0,
-                sourceContent: source.textContent ? source.textContent.substring(0, 100) + '...' : 'NO CONTENT'
+            const sourceElement = this.$refs.kicanvasSource;
+            if (sourceElement) {
+              // Set content directly to bypass Vue reactive system and DOMPurify
+              sourceElement.textContent = fileContent;
+              
+              enhancedLogger.debug('Manually set KiCanvas source content:', {
+                element: sourceElement.tagName,
+                name: sourceElement.getAttribute('name'),
+                type: sourceElement.getAttribute('type'),
+                contentLength: sourceElement.textContent.length,
+                contentPreview: sourceElement.textContent.substring(0, 100) + '...'
               });
+              
+              // Trigger KiCanvas update
+              const embed = sourceElement.parentElement;
+              if (embed && typeof embed.update === 'function') {
+                embed.update();
+                enhancedLogger.debug('Called KiCanvas embed.update()');
+              }
             } else {
-              enhancedLogger.error('KiCanvas elements not found in DOM', {
-                embed: !!embed,
-                source: !!source
-              });
+              enhancedLogger.error('KiCanvas source ref not found');
             }
           }, 100);
         });
