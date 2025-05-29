@@ -6,6 +6,11 @@ declare(strict_types=1);
 return [
     'routes' => [
         [
+            'name' => 'file#test',
+            'url' => '/test',
+            'verb' => 'GET'
+        ],
+        [
             'name' => 'file#getFile',
             'url' => '/api/file/{path}/{filename}',
             'verb' => 'GET',

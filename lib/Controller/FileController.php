@@ -19,6 +19,15 @@ class FileController extends Controller {
     /**
      * @NoAdminRequired
      * @NoCSRFRequired
+     * @PublicPage
+     */
+    public function test(): StreamResponse {
+        return new StreamResponse('Hello from KiCAD Viewer!', Http::STATUS_OK);
+    }
+    
+    /**
+     * @NoAdminRequired
+     * @NoCSRFRequired
      */
     public function getFile(string $path, string $filename): StreamResponse {
         try {
