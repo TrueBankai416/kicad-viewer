@@ -16,9 +16,13 @@ class Application extends App {
 		parent::__construct(self::APP_ID);
 		error_log('DEBUG: kicad_viewer Application constructed (simple App)');
 		
-		// Register viewer listener directly without IBootstrap
-		$eventDispatcher = \OC::$server->getEventDispatcher();
-		$eventDispatcher->addServiceListener(LoadViewer::class, LoadViewerListener::class);
-		error_log('DEBUG: kicad_viewer LoadViewer listener registered directly');
+		// Register viewer listener using correct Nextcloud 32 method
+		try {
+			$eventDispatcher = \OC::$server->get(\OCP\EventDispatcher\IEventDispatcher::class);
+			$eventDispatcher->addServiceListener(LoadViewer::class, LoadViewerListener::class);
+			error_log('DEBUG: kicad_viewer LoadViewer listener registered directly');
+		} catch (\Exception $e) {
+			error_log('DEBUG: kicad_viewer failed to register listener: ' . $e->getMessage());
+		}
 	}
 }
