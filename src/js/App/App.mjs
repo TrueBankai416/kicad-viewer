@@ -99,13 +99,10 @@ export default {
           fileBasename,
         );
 
-        this.isLoading = false;
         enhancedLogger.debug('File content loaded, length:', fileContent.length);
 
-        // Initialize KiCanvas - elements now always exist in DOM with v-show
-        this.$nextTick(() => {
-          this.initKiCanvas(fileContent, fileExtension);
-        });
+        // Initialize KiCanvas while still loading - set content before showing
+        this.initKiCanvas(fileContent, fileExtension);
       }
       catch (error) {
         enhancedLogger.error('Error loading KiCad file:', error);
@@ -155,37 +152,21 @@ export default {
               // Trigger multiple KiCanvas refresh methods
               const embed = sourceElement.parentElement;
               
-              // Try multiple approaches to make KiCanvas recognize the content
-              if (embed) {
-                // Method 1: Standard update
-                if (typeof embed.update === 'function') {
+              // Set content first, then show element
+              enhancedLogger.debug('Content set while element hidden');
+              
+              // Now make element visible - KiCanvas should find content immediately  
+              this.isLoading = false;
+              enhancedLogger.debug('Made KiCanvas visible with content ready');
+              
+              // Give KiCanvas a moment to scan for sources, then try gentle refresh
+              setTimeout(() => {
+                const embed = sourceElement.parentElement;
+                if (embed && typeof embed.update === 'function') {
                   embed.update();
-                  enhancedLogger.debug('Called KiCanvas embed.update()');
+                  enhancedLogger.debug('Called gentle KiCanvas refresh after visibility');
                 }
-                
-                // Method 2: Force re-initialization
-                if (typeof embed.connectedCallback === 'function') {
-                  embed.connectedCallback();
-                  enhancedLogger.debug('Called KiCanvas embed.connectedCallback()');
-                }
-                
-                // Method 3: Dispatch content change event
-                try {
-                  const event = new CustomEvent('content-changed', { detail: { source: sourceElement } });
-                  embed.dispatchEvent(event);
-                  enhancedLogger.debug('Dispatched content-changed event');
-                } catch (e) {
-                  enhancedLogger.debug('Custom event not supported');
-                }
-                
-                // Method 4: Force DOM mutation observation
-                setTimeout(() => {
-                  if (typeof embed.update === 'function') {
-                    embed.update();
-                    enhancedLogger.debug('Called delayed KiCanvas embed.update()');
-                  }
-                }, 500);
-              }
+              }, 200);
               
               enhancedLogger.debug('KiCanvas setup completed successfully');
             } else {
