@@ -33,6 +33,16 @@ class Application extends App implements IBootstrap {
 		$context->registerEventListener(LoadViewer::class, LoadViewerListener::class);
 		$context->registerEventListener(BeforeTemplateRenderedEvent::class, LoadPublicViewerListener::class);
 		$context->registerEventListener(AddContentSecurityPolicyEvent::class, AddCspEventListener::class);
+		
+		// Register the FileController for API routes
+		$context->registerService('FileController', function($c) {
+			return new \OCA\kicad_viewer\Controller\FileController(
+				$c->query('AppName'),
+				$c->query('Request'),
+				$c->query(\OCP\Files\IRootFolder::class),
+				$c->query(\OCP\IUserSession::class)
+			);
+		});
 	}
 
 	public function boot(IBootContext $context): void {
