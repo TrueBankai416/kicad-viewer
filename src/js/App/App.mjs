@@ -136,18 +136,33 @@ export default {
           setTimeout(() => {
             const sourceElement = this.$refs.kicanvasSource;
             if (sourceElement) {
-              // Set all attributes directly on DOM element
+              // Try blob URL approach instead of textContent
+              const blob = new Blob([fileContent], { type: mimeType });
+              const blobUrl = URL.createObjectURL(blob);
+              
+              // Set attributes on DOM element
               sourceElement.setAttribute('type', mimeType);
               sourceElement.setAttribute('name', this.basename);
-              sourceElement.textContent = fileContent;
+              sourceElement.setAttribute('src', blobUrl);
               
-              enhancedLogger.debug('Manually set KiCanvas source via pure DOM:', {
+              enhancedLogger.debug('Manually set KiCanvas source via blob URL:', {
                 element: sourceElement.tagName,
                 name: sourceElement.getAttribute('name'),
                 type: sourceElement.getAttribute('type'),
-                contentLength: sourceElement.textContent.length,
-                contentPreview: sourceElement.textContent.substring(0, 100) + '...'
+                src: sourceElement.getAttribute('src'),
+                blobSize: blob.size,
+                method: 'Direct DOM blob URL'
               });
+              
+              // Clean up blob URL after a reasonable time
+              setTimeout(() => {
+                try {
+                  URL.revokeObjectURL(blobUrl);
+                  enhancedLogger.debug('Blob URL cleaned up');
+                } catch (e) {
+                  // Ignore cleanup errors
+                }
+              }, 60000);
               
               // Trigger multiple KiCanvas refresh methods
               const embed = sourceElement.parentElement;
