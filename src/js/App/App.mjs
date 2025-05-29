@@ -152,11 +152,39 @@ export default {
                 contentPreview: sourceElement.textContent.substring(0, 100) + '...'
               });
               
-              // Trigger KiCanvas update
+              // Trigger multiple KiCanvas refresh methods
               const embed = sourceElement.parentElement;
-              if (embed && typeof embed.update === 'function') {
-                embed.update();
-                enhancedLogger.debug('Called KiCanvas embed.update()');
+              
+              // Try multiple approaches to make KiCanvas recognize the content
+              if (embed) {
+                // Method 1: Standard update
+                if (typeof embed.update === 'function') {
+                  embed.update();
+                  enhancedLogger.debug('Called KiCanvas embed.update()');
+                }
+                
+                // Method 2: Force re-initialization
+                if (typeof embed.connectedCallback === 'function') {
+                  embed.connectedCallback();
+                  enhancedLogger.debug('Called KiCanvas embed.connectedCallback()');
+                }
+                
+                // Method 3: Dispatch content change event
+                try {
+                  const event = new CustomEvent('content-changed', { detail: { source: sourceElement } });
+                  embed.dispatchEvent(event);
+                  enhancedLogger.debug('Dispatched content-changed event');
+                } catch (e) {
+                  enhancedLogger.debug('Custom event not supported');
+                }
+                
+                // Method 4: Force DOM mutation observation
+                setTimeout(() => {
+                  if (typeof embed.update === 'function') {
+                    embed.update();
+                    enhancedLogger.debug('Called delayed KiCanvas embed.update()');
+                  }
+                }, 500);
               }
               
               enhancedLogger.debug('KiCanvas setup completed successfully');
