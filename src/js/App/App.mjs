@@ -167,7 +167,17 @@ export default {
             const blob = new Blob([fileContent], { type: mimeType });
             const blobUrl = URL.createObjectURL(blob);
             embedElement.src = blobUrl;
+            // Help KiCanvas determine file type by setting filename attributes
+            let filename = this.filename || this.basename;
+            if (filename.startsWith('/')) {
+              filename = filename.substring(1);
+            }
+            embedElement.setAttribute('data-filename', filename);
+            embedElement.setAttribute('filename', filename);
+            embedElement.setAttribute('data-type', fileExtension);
+            
             enhancedLogger.debug('Set src to blob URL:', blobUrl);
+            enhancedLogger.debug('Set filename attributes:', filename);
           }
           
           // Method 3: Call render method if available
