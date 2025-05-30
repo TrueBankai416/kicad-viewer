@@ -93,7 +93,101 @@ export default {
       }
     },
     destruct () {
+      // Clean up observer
+      if (this.loadingObserver) {
+        this.loadingObserver.disconnect();
+        this.loadingObserver = null;
+      }
       this.cleanupKiCanvas();
+    },
+    hideKiCanvasLoadingElements(embedElement) {
+      try {
+        enhancedLogger.debug('Aggressively hiding KiCanvas loading elements');
+        
+        // List of selectors that might be loading elements
+        const loadingSelectors = [
+          '[class*="loading"]',
+          '[class*="spinner"]',
+          '[id*="loading"]',
+          '[id*="spinner"]',
+          '.kc-loading',
+          '.kc-spinner',
+          '.loading',
+          '.spinner',
+          '.loading-overlay',
+          '.progress',
+          '[data-loading]',
+          '[loading]'
+        ];
+        
+        // Try to access shadow root if possible
+        let elementsToSearch = [embedElement];
+        if (embedElement.shadowRoot) {
+          elementsToSearch.push(embedElement.shadowRoot);
+          enhancedLogger.debug('Found KiCanvas shadow root, searching inside');
+        }
+        
+        let hiddenCount = 0;
+        elementsToSearch.forEach(root => {
+          loadingSelectors.forEach(selector => {
+            try {
+              const elements = root.querySelectorAll(selector);
+              elements.forEach(el => {
+                el.style.setProperty('display', 'none', 'important');
+                el.style.setProperty('visibility', 'hidden', 'important');
+                el.style.setProperty('opacity', '0', 'important');
+                hiddenCount++;
+              });
+            } catch (e) {
+              // Ignore selector errors
+            }
+          });
+        });
+        
+        enhancedLogger.debug(`Hidden ${hiddenCount} potential loading elements in KiCanvas`);
+      } catch (error) {
+        enhancedLogger.debug('Error hiding KiCanvas loading elements:', error);
+      }
+    },
+    setupKiCanvasLoadingObserver(embedElement) {
+      try {
+        enhancedLogger.debug('Setting up KiCanvas loading observer');
+        
+        const observer = new MutationObserver((mutations) => {
+          mutations.forEach((mutation) => {
+            mutation.addedNodes.forEach((node) => {
+              if (node.nodeType === Node.ELEMENT_NODE) {
+                // Check if the added node or its children contain loading elements
+                const element = node;
+                if (element.className && (
+                  element.className.includes('loading') || 
+                  element.className.includes('spinner')
+                )) {
+                  enhancedLogger.debug('Detected new loading element, hiding it');
+                  element.style.setProperty('display', 'none', 'important');
+                  element.style.setProperty('visibility', 'hidden', 'important');
+                  element.style.setProperty('opacity', '0', 'important');
+                }
+              }
+            });
+          });
+        });
+        
+        // Observe the KiCanvas element
+        observer.observe(embedElement, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ['class', 'style']
+        });
+        
+        // Store observer for cleanup
+        this.loadingObserver = observer;
+        
+        enhancedLogger.debug('KiCanvas loading observer set up successfully');
+      } catch (error) {
+        enhancedLogger.debug('Error setting up KiCanvas loading observer:', error);
+      }
     },
     async construct () {
       this.isLoading = true;
@@ -292,7 +386,7 @@ export default {
           });
         }, 50);
         
-        // Give KiCanvas a moment to render, then try multiple refresh approaches
+        // Give KiCanvas a moment to render, then aggressively hide loading elements
         setTimeout(() => {
           try {
             const embed = embedElement;
@@ -317,7 +411,10 @@ export default {
                 }
               });
               
-              // Approach 3: Force DOM mutation by temporarily removing/adding an attribute
+              // Approach 3: Aggressively hide any loading elements within KiCanvas
+              this.hideKiCanvasLoadingElements(embed);
+              
+              // Approach 4: Force DOM mutation by temporarily removing/adding an attribute
               setTimeout(() => {
                 try {
                   const tempAttr = 'data-refresh';
@@ -332,21 +429,14 @@ export default {
               // Log current sources state
               const sources = embed.querySelectorAll('kicanvas-source');
               enhancedLogger.debug('KiCanvas sources after refresh attempts:', sources.length);
-              sources.forEach((src, i) => {
-                enhancedLogger.debug(`Source ${i}:`, {
-                  src: src.getAttribute('src'),
-                  type: src.getAttribute('type'),
-                  name: src.getAttribute('name'),
-                  format: src.getAttribute('data-format'),
-                  hasTextContent: !!src.textContent,
-                  textContentLength: src.textContent?.length || 0
-                });
-              });
             }
           } catch (e) {
             enhancedLogger.debug('KiCanvas refresh attempts failed:', e.message);
           }
         }, 300);
+        
+        // Set up a MutationObserver to catch any loading elements that appear later
+        this.setupKiCanvasLoadingObserver(embedElement);
         
         enhancedLogger.info('=== KiCanvas initialization completed successfully ===');
         
