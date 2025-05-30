@@ -8,6 +8,7 @@ namespace OCA\kicad_viewer\Controller;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\StreamResponse;
+use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
 
 class FileController extends Controller {
@@ -30,6 +31,7 @@ class FileController extends Controller {
     /**
      * @NoAdminRequired
      * @NoCSRFRequired
+     * @PublicPage
      */
     public function getFile(string $path, string $filename): StreamResponse {
         try {
@@ -72,7 +74,7 @@ class FileController extends Controller {
      * @NoAdminRequired
      * @NoCSRFRequired
      */
-    public function createPublicToken(): array {
+    public function createPublicToken() {
         try {
             $userSession = \OC::$server->getUserSession();
             $user = $userSession->getUser();
