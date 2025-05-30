@@ -136,17 +136,41 @@ export default {
           throw new Error('KiCanvas embed element not found in DOM');
         }
 
-        // Use the simplest approach - set the original file URL directly
-        const fileFetchUrl = this.source || this.davPath;
-        enhancedLogger.debug('Setting KiCanvas src to original file URL:', fileFetchUrl);
+        // Create a public token for the file so KiCanvas can access it without auth
+        const filePath = this.filename || this.basename;
+        enhancedLogger.debug('Creating public token for file:', filePath);
         
-        embedElement.setAttribute('src', fileFetchUrl);
-        
-        enhancedLogger.debug('Set KiCanvas embed src to original URL:', {
-          src: embedElement.getAttribute('src'),
-          controls: embedElement.getAttribute('controls'),
-          tagName: embedElement.tagName
-        });
+        try {
+          const tokenResponse = await fetch('/apps/kicad_viewer/api/public-token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'requesttoken': OC.requestToken
+            },
+            body: JSON.stringify({ filePath: filePath })
+          });
+          
+          const tokenData = await tokenResponse.json();
+          
+          if (tokenData.error) {
+            throw new Error('Token creation failed: ' + tokenData.error);
+          }
+          
+          const publicUrl = `/apps/kicad_viewer/public/${tokenData.token}`;
+          enhancedLogger.debug('Created public token, setting KiCanvas src:', publicUrl);
+          
+          embedElement.setAttribute('src', publicUrl);
+          
+          enhancedLogger.debug('Set KiCanvas embed src to public URL:', {
+            src: embedElement.getAttribute('src'),
+            controls: embedElement.getAttribute('controls'),
+            tagName: embedElement.tagName
+          });
+          
+        } catch (error) {
+          enhancedLogger.error('Failed to create public token:', error.message);
+          throw new Error('Failed to create public access for KiCanvas: ' + error.message);
+        }
 
         enhancedLogger.debug('Content loaded successfully, stopping loading spinner');
         enhancedLogger.debug('Before setting isLoading = false. Current value:', this.isLoading);
