@@ -149,10 +149,35 @@ export default {
         const publicUrl = `/apps/kicad_viewer/api/file/public/${encodeURIComponent(filename)}`;
         enhancedLogger.debug('Setting KiCanvas src to:', publicUrl);
         
-        // Try direct content injection instead of URL
+        // Use proper KiCanvas API for direct content
         embedElement.textContent = fileContent;
         embedElement.setAttribute('data-content', fileContent);
-        enhancedLogger.debug('Used direct content injection instead of URL');
+        
+        // Try KiCanvas API methods to trigger content parsing
+        try {
+          // Method 1: Use initialContentCallback if available
+          if (typeof embedElement.initialContentCallback === 'function') {
+            enhancedLogger.debug('Calling initialContentCallback');
+            embedElement.initialContentCallback();
+          }
+          
+          // Method 2: Set src property (not attribute) to content
+          if ('src' in embedElement) {
+            enhancedLogger.debug('Setting src property to content');
+            embedElement.src = fileContent;
+          }
+          
+          // Method 3: Call render method if available
+          if (typeof embedElement.render === 'function') {
+            enhancedLogger.debug('Calling render method');
+            embedElement.render();
+          }
+          
+          enhancedLogger.debug('Used KiCanvas API methods for direct content');
+          
+        } catch (error) {
+          enhancedLogger.error('KiCanvas API methods failed:', error.message);
+        }
         
         enhancedLogger.debug('Set KiCanvas embed src to API URL:', {
           src: embedElement.getAttribute('src'),
