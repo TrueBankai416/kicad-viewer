@@ -243,7 +243,7 @@ export default {
       // Try approaches in order of preference and reliability
       // KiCanvas might prefer text content over blob URLs
       const approaches = [
-        () => this.tryTextContent(sourceElement, fileContent, fileExtension),
+        () => this.tryTextContent(sourceElement, fileContent, fileExtension, mimeType),
         () => this.tryBlobUrl(sourceElement, fileContent, fileExtension, mimeType),
         () => this.tryDataUrl(sourceElement, fileContent, fileExtension, mimeType),
         () => this.tryDirectContent(sourceElement, fileContent)
@@ -304,12 +304,20 @@ export default {
       }
     },
 
-    tryTextContent(sourceElement, fileContent, fileExtension) {
+    tryTextContent(sourceElement, fileContent, fileExtension, mimeType) {
       enhancedLogger.debug('Trying text content approach');
       
       sourceElement.textContent = fileContent;
+      sourceElement.setAttribute('type', mimeType);
       sourceElement.setAttribute('data-format', fileExtension);
       sourceElement.setAttribute('name', this.basename);
+      
+      enhancedLogger.debug('Set text content with attributes:', {
+        type: sourceElement.getAttribute('type'),
+        name: sourceElement.getAttribute('name'),
+        format: sourceElement.getAttribute('data-format'),
+        contentLength: sourceElement.textContent?.length || 0
+      });
       
       return true;
     },
