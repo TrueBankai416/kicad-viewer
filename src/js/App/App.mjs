@@ -164,7 +164,10 @@ export default {
           // Method 2: Set src property (not attribute) to content
           if ('src' in embedElement) {
             enhancedLogger.debug('Setting src property to content');
-            embedElement.src = fileContent;
+            const blob = new Blob([fileContent], { type: mimeType });
+            const blobUrl = URL.createObjectURL(blob);
+            embedElement.src = blobUrl;
+            enhancedLogger.debug('Set src to blob URL:', blobUrl);
           }
           
           // Method 3: Call render method if available
