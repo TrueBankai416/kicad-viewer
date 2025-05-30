@@ -137,7 +137,12 @@ export default {
         }
 
         // Use existing route with public access parameter
-        const filename = this.filename || this.basename;
+        let filename = this.filename || this.basename;
+        
+        // Remove leading slash if present (like /smart_cancrusher.kicad_sch -> smart_cancrusher.kicad_sch)
+        if (filename.startsWith('/')) {
+          filename = filename.substring(1);
+        }
         enhancedLogger.debug('Setting KiCanvas src to public API endpoint:', filename);
         
         // Use the existing /api/file/ route which should work
