@@ -164,9 +164,9 @@ export default {
           // Method 2: Set src property (not attribute) to content
           if ('src' in embedElement) {
             enhancedLogger.debug('Setting src property to content');
-            const blob = new Blob([fileContent], { type: mimeType });
-            const blobUrl = URL.createObjectURL(blob);
-            embedElement.src = blobUrl;
+            // Try data URL instead of blob URL (CSP might allow data URLs)
+            const dataUrl = `data:${mimeType};charset=utf-8,${encodeURIComponent(fileContent)}`;
+            embedElement.src = dataUrl;
             // Help KiCanvas determine file type by setting filename attributes
             let filename = this.filename || this.basename;
             if (filename.startsWith('/')) {
@@ -176,7 +176,7 @@ export default {
             embedElement.setAttribute('filename', filename);
             embedElement.setAttribute('data-type', fileExtension);
             
-            enhancedLogger.debug('Set src to blob URL:', blobUrl);
+            enhancedLogger.debug('Set src to data URL:', dataUrl.substring(0, 100) + '...');
             enhancedLogger.debug('Set filename attributes:', filename);
           }
           
