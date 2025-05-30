@@ -102,9 +102,7 @@
   }
 }
 
-/* Hide the specific Nextcloud loading icon */
-:global(.icon-loading),
-:global(.icon-loading::before),
+/* Hide only the loading spinner pseudo-element, not the entire element */
 :global(.icon-loading::after) {
   display: none !important;
   visibility: hidden !important;
@@ -113,13 +111,21 @@
   content: none !important;
 }
 
-/* Also target it within the viewer context */
-:global(.viewer) :global(.icon-loading),
-:global(.viewer) :global(.icon-loading::before),
+/* More specific targeting within viewer */
 :global(.viewer) :global(.icon-loading::after) {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
+  animation: none !important;
+  content: none !important;
+}
+
+/* Also hide any spinning animations on loading elements */
+:global([class*="loading"]) {
+  animation: none !important;
+}
+
+:global([class*="loading"]::after) {
   animation: none !important;
   content: none !important;
 }
