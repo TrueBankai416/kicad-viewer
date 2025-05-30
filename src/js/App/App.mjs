@@ -277,33 +277,64 @@ export default {
       enhancedLogger.debug('Starting loadContentIntoKiCanvasEmbed with file extension:', fileExtension);
       enhancedLogger.debug('File content length:', fileContent.length);
 
-      // Use data URL instead of blob URL to avoid security restrictions
+      // Try direct content methods first (CSP-safe)
+      enhancedLogger.debug('Checking KiCanvas direct content methods');
+      const directMethods = Object.getOwnPropertyNames(embedElement.__proto__).filter(p => typeof embedElement[p] === 'function');
+      enhancedLogger.debug('Available KiCanvas methods:', directMethods);
+
+      // Approach 1: Try direct content setting methods
+      const contentMethods = ['setContent', 'loadFromString', 'loadContent', 'setSource', 'setData'];
+      for (const methodName of contentMethods) {
+        if (typeof embedElement[methodName] === 'function') {
+          try {
+            enhancedLogger.debug(`Trying direct method: ${methodName}`);
+            await embedElement[methodName](fileContent);
+            enhancedLogger.debug(`Direct method ${methodName} successful`);
+            return true;
+          } catch (error) {
+            enhancedLogger.debug(`Direct method ${methodName} failed:`, error.message);
+          }
+        }
+      }
+
+      // Approach 2: Try setting src with data URL (might work in some contexts)
       try {
-        // Create data URL for the content
+        enhancedLogger.debug('Trying data URL approach as fallback');
         const base64Content = this.encodeUtf8ToBase64(fileContent);
         const dataUrl = `data:${mimeType};base64,${base64Content}`;
         
-        enhancedLogger.debug('Created data URL for embed src:', {
-          mimeType: mimeType,
-          contentLength: fileContent.length,
-          base64Length: base64Content.length,
-          dataUrlStart: dataUrl.substring(0, 100) + '...'
-        });
-        
-        // Set the src attribute on the embed element (like the test file)
         embedElement.setAttribute('src', dataUrl);
         
-        enhancedLogger.debug('Set embed src attribute:', {
-          srcStart: embedElement.getAttribute('src').substring(0, 100) + '...',
-          controls: embedElement.getAttribute('controls'),
-          tagName: embedElement.tagName
-        });
-        
+        enhancedLogger.debug('Set embed src attribute with data URL');
         return true;
       } catch (error) {
-        enhancedLogger.error('Data URL approach failed:', error);
-        return false;
+        enhancedLogger.debug('Data URL approach failed:', error.message);
       }
+
+      // Approach 3: Try creating a temporary blob and setting it directly
+      try {
+        enhancedLogger.debug('Trying direct blob assignment');
+        const blob = new Blob([fileContent], { type: mimeType });
+        
+        // Try setting various blob properties
+        if ('src' in embedElement) {
+          embedElement.src = blob;
+        }
+        if ('content' in embedElement) {
+          embedElement.content = fileContent;
+        }
+        if ('data' in embedElement) {
+          embedElement.data = fileContent;
+        }
+        
+        enhancedLogger.debug('Direct blob assignment attempted');
+        return true;
+      } catch (error) {
+        enhancedLogger.debug('Direct blob assignment failed:', error.message);
+      }
+
+      enhancedLogger.error('All content loading approaches failed - CSP restrictions prevent URL-based loading');
+      return false;
     },
 
     tryBlobUrl(sourceElement, fileContent, fileExtension, mimeType) {
