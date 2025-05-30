@@ -79,3 +79,25 @@
   pointer-events: none !important;
   transform: scale(0) !important;
 }
+
+/* Hide KiCanvas's own loading UI elements */
+:global(kicanvas-embed) {
+  /* Hide any loading overlays or spinners within KiCanvas */
+  :global(.loading),
+  :global(.spinner),
+  :global(.loading-overlay),
+  :global(.kc-loading),
+  :global(.kc-spinner),
+  :global([class*="loading"]),
+  :global([class*="spinner"]) {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
+  
+  /* Hide shadow DOM loading elements if accessible */
+  :global(*[loading]),
+  :global(*[data-loading]) {
+    display: none !important;
+  }
+}

@@ -173,6 +173,12 @@ export default {
         embedElement.setAttribute('base-url', '');
         embedElement.setAttribute('disable-hierarchical-loading', 'true');
         
+        // Disable KiCanvas's own loading UI and spinners
+        embedElement.setAttribute('disable-loading-ui', 'true');
+        embedElement.setAttribute('hide-loading-spinner', 'true');
+        embedElement.setAttribute('loading', 'false');
+        embedElement.setAttribute('show-loading', 'false');
+        
         // Try KiCanvas API methods to trigger content parsing
         try {
           // Method 1: Use initialContentCallback if available
