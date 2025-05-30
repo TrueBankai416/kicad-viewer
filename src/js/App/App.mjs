@@ -277,36 +277,31 @@ export default {
       enhancedLogger.debug('Starting loadContentIntoKiCanvasEmbed with file extension:', fileExtension);
       enhancedLogger.debug('File content length:', fileContent.length);
 
-      // Use the correct KiCanvas pattern - set src attribute on embed element
+      // Use data URL instead of blob URL to avoid security restrictions
       try {
-        // Create blob URL for the content
-        const blob = new Blob([fileContent], { type: mimeType });
-        const blobUrl = URL.createObjectURL(blob);
+        // Create data URL for the content
+        const base64Content = this.encodeUtf8ToBase64(fileContent);
+        const dataUrl = `data:${mimeType};base64,${base64Content}`;
         
-        enhancedLogger.debug('Created blob URL for embed src:', blobUrl, 'Blob size:', blob.size);
+        enhancedLogger.debug('Created data URL for embed src:', {
+          mimeType: mimeType,
+          contentLength: fileContent.length,
+          base64Length: base64Content.length,
+          dataUrlStart: dataUrl.substring(0, 100) + '...'
+        });
         
         // Set the src attribute on the embed element (like the test file)
-        embedElement.setAttribute('src', blobUrl);
+        embedElement.setAttribute('src', dataUrl);
         
         enhancedLogger.debug('Set embed src attribute:', {
-          src: embedElement.getAttribute('src'),
+          srcStart: embedElement.getAttribute('src').substring(0, 100) + '...',
           controls: embedElement.getAttribute('controls'),
           tagName: embedElement.tagName
         });
         
-        // Clean up blob URL after a reasonable time
-        setTimeout(() => {
-          try {
-            URL.revokeObjectURL(blobUrl);
-            enhancedLogger.debug('Embed blob URL cleaned up');
-          } catch (e) {
-            // Ignore cleanup errors
-          }
-        }, 60000);
-        
         return true;
       } catch (error) {
-        enhancedLogger.error('Embed src approach failed:', error);
+        enhancedLogger.error('Data URL approach failed:', error);
         return false;
       }
     },
