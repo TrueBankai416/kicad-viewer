@@ -149,7 +149,10 @@ export default {
         const publicUrl = `/apps/kicad_viewer/api/file/public/${encodeURIComponent(filename)}`;
         enhancedLogger.debug('Setting KiCanvas src to:', publicUrl);
         
-        embedElement.setAttribute('src', publicUrl);
+        // Try direct content injection instead of URL
+        embedElement.textContent = fileContent;
+        embedElement.setAttribute('data-content', fileContent);
+        enhancedLogger.debug('Used direct content injection instead of URL');
         
         enhancedLogger.debug('Set KiCanvas embed src to API URL:', {
           src: embedElement.getAttribute('src'),
