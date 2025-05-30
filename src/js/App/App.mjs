@@ -144,18 +144,74 @@ export default {
         }
 
         enhancedLogger.debug('Content loaded successfully, stopping loading spinner');
+        enhancedLogger.debug('Before setting isLoading = false. Current value:', this.isLoading);
         this.isLoading = false;
+        enhancedLogger.debug('After setting isLoading = false. New value:', this.isLoading);
         
-        // Give KiCanvas a moment to render, then try to trigger update
+        // Force Vue to update immediately
+        await this.$nextTick();
+        enhancedLogger.debug('Vue nextTick completed, isLoading should be updated in DOM');
+        
+        // Check Vue DOM state immediately
+        enhancedLogger.debug('Checking Vue DOM state after isLoading = false');
+        const loadingElement = document.querySelector('.loadingContainer');
+        const kicanvasElement = document.querySelector('kicanvas-embed');
+        enhancedLogger.debug('Loading element visible:', loadingElement && !loadingElement.hasAttribute('style') ? 'YES' : 'NO');
+        enhancedLogger.debug('KiCanvas element visible:', kicanvasElement && !kicanvasElement.hasAttribute('style') ? 'YES' : 'NO');
+        
+        // Give KiCanvas a moment to render, then try multiple refresh approaches
         setTimeout(() => {
           try {
             const embed = sourceElement.parentElement;
-            if (embed && typeof embed.update === 'function') {
-              embed.update();
-              enhancedLogger.debug('Called KiCanvas update after content load');
+            enhancedLogger.debug('Checking KiCanvas embed element:', embed?.tagName, 'Update method available:', typeof embed?.update);
+            
+            // Try multiple approaches to force KiCanvas refresh
+            if (embed) {
+              // Approach 1: Call update if available
+              if (typeof embed.update === 'function') {
+                embed.update();
+                enhancedLogger.debug('Called KiCanvas update method');
+              }
+              
+              // Approach 2: Dispatch custom events that KiCanvas might listen for
+              const events = ['load', 'change', 'input', 'kicanvas-refresh'];
+              events.forEach(eventType => {
+                try {
+                  embed.dispatchEvent(new Event(eventType, { bubbles: true }));
+                  enhancedLogger.debug(`Dispatched ${eventType} event on embed`);
+                } catch (e) {
+                  // Ignore event dispatch errors
+                }
+              });
+              
+              // Approach 3: Force DOM mutation by temporarily removing/adding an attribute
+              setTimeout(() => {
+                try {
+                  const tempAttr = 'data-refresh';
+                  embed.setAttribute(tempAttr, Date.now().toString());
+                  setTimeout(() => embed.removeAttribute(tempAttr), 10);
+                  enhancedLogger.debug('Forced DOM mutation to trigger KiCanvas refresh');
+                } catch (e) {
+                  // Ignore mutation errors
+                }
+              }, 100);
+              
+              // Log current sources state
+              const sources = embed.querySelectorAll('kicanvas-source');
+              enhancedLogger.debug('KiCanvas sources after refresh attempts:', sources.length);
+              sources.forEach((src, i) => {
+                enhancedLogger.debug(`Source ${i}:`, {
+                  src: src.getAttribute('src'),
+                  type: src.getAttribute('type'),
+                  name: src.getAttribute('name'),
+                  format: src.getAttribute('data-format'),
+                  hasTextContent: !!src.textContent,
+                  textContentLength: src.textContent?.length || 0
+                });
+              });
             }
           } catch (e) {
-            enhancedLogger.debug('KiCanvas update failed, but content is loaded:', e.message);
+            enhancedLogger.debug('KiCanvas refresh attempts failed:', e.message);
           }
         }, 300);
         
@@ -185,9 +241,10 @@ export default {
       enhancedLogger.debug('File content length:', fileContent.length);
 
       // Try approaches in order of preference and reliability
+      // KiCanvas might prefer text content over blob URLs
       const approaches = [
-        () => this.tryBlobUrl(sourceElement, fileContent, fileExtension, mimeType),
         () => this.tryTextContent(sourceElement, fileContent, fileExtension),
+        () => this.tryBlobUrl(sourceElement, fileContent, fileExtension, mimeType),
         () => this.tryDataUrl(sourceElement, fileContent, fileExtension, mimeType),
         () => this.tryDirectContent(sourceElement, fileContent)
       ];
@@ -212,25 +269,39 @@ export default {
     tryBlobUrl(sourceElement, fileContent, fileExtension, mimeType) {
       enhancedLogger.debug('Trying blob URL approach');
       
-      const blob = new Blob([fileContent], { type: mimeType });
-      const fileUrl = URL.createObjectURL(blob);
-      
-      sourceElement.setAttribute('src', fileUrl);
-      sourceElement.setAttribute('type', mimeType);
-      sourceElement.setAttribute('name', this.basename);
-      sourceElement.setAttribute('data-format', fileExtension);
-      
-      // Clean up the URL after a reasonable time
-      setTimeout(() => {
-        try {
-          URL.revokeObjectURL(fileUrl);
-          enhancedLogger.debug('Blob URL cleaned up');
-        } catch (e) {
-          // Ignore cleanup errors
-        }
-      }, 60000);
-      
-      return true;
+      try {
+        const blob = new Blob([fileContent], { type: mimeType });
+        const fileUrl = URL.createObjectURL(blob);
+        
+        enhancedLogger.debug('Created blob URL:', fileUrl, 'Blob size:', blob.size, 'Mime type:', mimeType);
+        
+        sourceElement.setAttribute('src', fileUrl);
+        sourceElement.setAttribute('type', mimeType);
+        sourceElement.setAttribute('name', this.basename);
+        sourceElement.setAttribute('data-format', fileExtension);
+        
+        enhancedLogger.debug('Set attributes on source element:', {
+          src: sourceElement.getAttribute('src'),
+          type: sourceElement.getAttribute('type'),
+          name: sourceElement.getAttribute('name'),
+          format: sourceElement.getAttribute('data-format')
+        });
+        
+        // Clean up the URL after a reasonable time
+        setTimeout(() => {
+          try {
+            URL.revokeObjectURL(fileUrl);
+            enhancedLogger.debug('Blob URL cleaned up');
+          } catch (e) {
+            // Ignore cleanup errors
+          }
+        }, 60000);
+        
+        return true;
+      } catch (error) {
+        enhancedLogger.error('Blob URL approach failed:', error);
+        throw error;
+      }
     },
 
     tryTextContent(sourceElement, fileContent, fileExtension) {
