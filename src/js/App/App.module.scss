@@ -70,3 +70,12 @@
 @keyframes spinner {
   to {transform: rotate(360deg);}
 }
+
+/* Force hide loading spinner when KiCanvas is ready */
+:global(.force-hidden) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: scale(0) !important;
+}

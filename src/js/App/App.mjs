@@ -266,8 +266,12 @@ export default {
           
           if (loadingEl) {
             enhancedLogger.debug('Manually hiding loading element via style.display');
-            loadingEl.style.display = 'none';
-            loadingEl.style.visibility = 'hidden';
+            loadingEl.style.setProperty('display', 'none', 'important');
+            loadingEl.style.setProperty('visibility', 'hidden', 'important');
+            loadingEl.style.setProperty('opacity', '0', 'important');
+            loadingEl.style.setProperty('pointer-events', 'none', 'important');
+            // Also add a CSS class to ensure it's hidden
+            loadingEl.classList.add('force-hidden');
           }
           
           if (kicanvasEl) {
