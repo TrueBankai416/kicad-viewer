@@ -131,13 +131,13 @@ export default {
         // Wait a bit more to ensure DOM is ready
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        const sourceElement = this.$refs.kicanvasSource;
-        if (!sourceElement) {
-          throw new Error('KiCanvas source element not found in DOM');
+        const embedElement = document.querySelector('kicanvas-embed');
+        if (!embedElement) {
+          throw new Error('KiCanvas embed element not found in DOM');
         }
 
-        // Try multiple approaches to load content
-        let loadSuccess = await this.loadContentIntoKiCanvas(sourceElement, fileContent, fileExtension, mimeType);
+        // Use the correct KiCanvas pattern - set src attribute on embed element
+        let loadSuccess = await this.loadContentIntoKiCanvasEmbed(embedElement, fileContent, fileExtension, mimeType);
         
         if (!loadSuccess) {
           throw new Error('Failed to load content into KiCanvas using any method');
@@ -199,7 +199,7 @@ export default {
         // Give KiCanvas a moment to render, then try multiple refresh approaches
         setTimeout(() => {
           try {
-            const embed = sourceElement.parentElement;
+            const embed = embedElement;
             enhancedLogger.debug('Checking KiCanvas embed element:', embed?.tagName, 'Update method available:', typeof embed?.update);
             
             // Try multiple approaches to force KiCanvas refresh
@@ -273,35 +273,42 @@ export default {
 
       return mimeMap[extension] || 'text/plain';
     },
-    async loadContentIntoKiCanvas(sourceElement, fileContent, fileExtension, mimeType) {
-      enhancedLogger.debug('Starting loadContentIntoKiCanvas with file extension:', fileExtension);
+    async loadContentIntoKiCanvasEmbed(embedElement, fileContent, fileExtension, mimeType) {
+      enhancedLogger.debug('Starting loadContentIntoKiCanvasEmbed with file extension:', fileExtension);
       enhancedLogger.debug('File content length:', fileContent.length);
 
-      // Try approaches in order of preference and reliability
-      // KiCanvas might prefer script tags over text content
-      const approaches = [
-        () => this.tryScriptTag(sourceElement, fileContent, fileExtension, mimeType),
-        () => this.tryTextContent(sourceElement, fileContent, fileExtension, mimeType),
-        () => this.tryBlobUrl(sourceElement, fileContent, fileExtension, mimeType),
-        () => this.tryDataUrl(sourceElement, fileContent, fileExtension, mimeType),
-        () => this.tryDirectContent(sourceElement, fileContent)
-      ];
-
-      for (let i = 0; i < approaches.length; i++) {
-        try {
-          enhancedLogger.debug(`Trying loading approach ${i + 1}/${approaches.length}`);
-          const success = await approaches[i]();
-          if (success) {
-            enhancedLogger.debug(`Loading approach ${i + 1} successful`);
-            return true;
+      // Use the correct KiCanvas pattern - set src attribute on embed element
+      try {
+        // Create blob URL for the content
+        const blob = new Blob([fileContent], { type: mimeType });
+        const blobUrl = URL.createObjectURL(blob);
+        
+        enhancedLogger.debug('Created blob URL for embed src:', blobUrl, 'Blob size:', blob.size);
+        
+        // Set the src attribute on the embed element (like the test file)
+        embedElement.setAttribute('src', blobUrl);
+        
+        enhancedLogger.debug('Set embed src attribute:', {
+          src: embedElement.getAttribute('src'),
+          controls: embedElement.getAttribute('controls'),
+          tagName: embedElement.tagName
+        });
+        
+        // Clean up blob URL after a reasonable time
+        setTimeout(() => {
+          try {
+            URL.revokeObjectURL(blobUrl);
+            enhancedLogger.debug('Embed blob URL cleaned up');
+          } catch (e) {
+            // Ignore cleanup errors
           }
-        } catch (err) {
-          enhancedLogger.debug(`Loading approach ${i + 1} failed:`, err.message);
-        }
+        }, 60000);
+        
+        return true;
+      } catch (error) {
+        enhancedLogger.error('Embed src approach failed:', error);
+        return false;
       }
-
-      enhancedLogger.error('All content loading approaches failed');
-      return false;
     },
 
     tryBlobUrl(sourceElement, fileContent, fileExtension, mimeType) {
