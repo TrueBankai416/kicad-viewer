@@ -22,12 +22,20 @@ return [
             ]
         ],
         [
+            'name' => 'file#getPublicFile',
+            'url' => '/api/file/public/{filename}',
+            'verb' => 'GET',
+            'requirements' => [
+                'filename' => '.+'
+            ]
+        ],
+        [
             'name' => 'file#createPublicToken',
             'url' => '/api/public-token',
             'verb' => 'POST'
         ],
         [
-            'name' => 'file#getPublicFile',
+            'name' => 'file#getPublicFileByToken',
             'url' => '/public/{token}',
             'verb' => 'GET'
         ]

@@ -41,16 +41,21 @@ class FileController extends Controller {
             
             $user = $userSession->getUser();
             if (!$user) {
-                return new StreamResponse('User not found', Http::STATUS_UNAUTHORIZED);
+                return $this->createErrorResponse('User not found', Http::STATUS_UNAUTHORIZED, $filename);
             }
             
             $userFolder = $rootFolder->getUserFolder($user->getUID());
             
             // Use filename as the file path since we're passing the same value for both
-            $file = $userFolder->get($filename);
+            try {
+                $file = $userFolder->get($filename);
+            } catch (\Exception $e) {
+                // File not found - return appropriate KiCAD content instead of HTML error
+                return $this->createMissingFileResponse($filename);
+            }
             
             if (!$file || $file->getType() !== \OCP\Files\FileInfo::TYPE_FILE) {
-                return new StreamResponse('File not found', Http::STATUS_NOT_FOUND);
+                return $this->createMissingFileResponse($filename);
             }
             
             // Get the file content and MIME type
@@ -62,11 +67,14 @@ class FileController extends Controller {
             $response->addHeader('Content-Type', $mimeType);
             $response->addHeader('Content-Disposition', 'inline; filename="' . $filename . '"');
             $response->addHeader('Content-Length', (string)strlen($content));
+            $response->addHeader('Access-Control-Allow-Origin', '*');
+            $response->addHeader('Access-Control-Allow-Methods', 'GET');
+            $response->addHeader('Access-Control-Allow-Headers', 'Content-Type');
             
             return $response;
             
         } catch (\Exception $e) {
-            return new StreamResponse('Server error: ' . $e->getMessage(), Http::STATUS_INTERNAL_SERVER_ERROR);
+            return $this->createErrorResponse('Server error: ' . $e->getMessage(), Http::STATUS_INTERNAL_SERVER_ERROR, $filename);
         }
     }
     
@@ -105,11 +113,172 @@ class FileController extends Controller {
     }
     
     /**
+     * Create a response for missing KiCAD files with appropriate content type
+     */
+    private function createMissingFileResponse(string $filename): StreamResponse {
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        $mimeType = $this->getKiCadMimeType($extension);
+        
+        // Return minimal valid KiCAD content instead of HTML error
+        $content = $this->getMinimalKiCadContent($extension);
+        
+        $response = new StreamResponse($content);
+        $response->addHeader('Content-Type', $mimeType);
+        $response->addHeader('Content-Disposition', 'inline; filename="' . $filename . '"');
+        $response->addHeader('Content-Length', (string)strlen($content));
+        $response->addHeader('Access-Control-Allow-Origin', '*');
+        $response->addHeader('Access-Control-Allow-Methods', 'GET');
+        $response->addHeader('Access-Control-Allow-Headers', 'Content-Type');
+        
+        return $response;
+    }
+    
+    /**
+     * Create error response with appropriate content type for KiCAD files
+     */
+    private function createErrorResponse(string $message, int $statusCode, string $filename = ''): StreamResponse {
+        // For KiCAD files, return minimal content instead of HTML errors
+        if ($filename && $this->isKiCadFile($filename)) {
+            return $this->createMissingFileResponse($filename);
+        }
+        
+        return new StreamResponse($message, $statusCode);
+    }
+    
+    /**
+     * Check if filename is a KiCAD file
+     */
+    private function isKiCadFile(string $filename): bool {
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        $kicadExtensions = ['kicad_sch', 'kicad_pcb', 'kicad_pro', 'kicad_wks', 'kicad_mod', 'kicad_sym'];
+        return in_array($extension, $kicadExtensions);
+    }
+    
+    /**
+     * Get MIME type for KiCAD file extensions
+     */
+    private function getKiCadMimeType(string $extension): string {
+        $mimeMap = [
+            'kicad_pcb' => 'application/x-kicad-pcb',
+            'kicad_sch' => 'application/x-kicad-schematic',
+            'kicad_pro' => 'application/x-kicad-project',
+            'kicad_wks' => 'application/x-kicad-workspace',
+            'kicad_mod' => 'application/x-kicad-footprint',
+            'kicad_sym' => 'application/x-kicad-symbol'
+        ];
+        
+        return $mimeMap[$extension] ?? 'text/plain';
+    }
+    
+    /**
+     * Get minimal valid KiCAD content for missing files
+     */
+    private function getMinimalKiCadContent(string $extension): string {
+        switch ($extension) {
+            case 'kicad_sch':
+                return '(kicad_sch (version 20230121) (generator eeschema)
+  (uuid ' . bin2hex(random_bytes(16)) . ')
+  (paper "A4")
+  (title_block
+    (title "Missing File")
+    (date "")
+    (rev "")
+    (company "")
+  )
+)';
+            case 'kicad_pcb':
+                return '(kicad_pcb (version 20230121) (generator pcbnew)
+  (general
+    (thickness 1.6)
+  )
+  (paper "A4")
+  (title_block
+    (title "Missing File")
+  )
+  (layers
+    (0 "F.Cu" signal)
+    (31 "B.Cu" signal)
+  )
+)';
+            case 'kicad_pro':
+                return '{
+  "board": {
+    "design_settings": {},
+    "layer_presets": [],
+    "viewports": []
+  },
+  "boards": [],
+  "libraries": {},
+  "meta": {
+    "filename": "missing.kicad_pro",
+    "version": 1
+  },
+  "net_settings": {},
+  "pcbnew": {},
+  "schematic": {},
+  "sheets": []
+}';
+            default:
+                return '# Missing KiCAD file';
+        }
+    }
+
+    /**
      * @NoAdminRequired
      * @NoCSRFRequired
      * @PublicPage
      */
-    public function getPublicFile(string $token): StreamResponse {
+    public function getPublicFile(string $filename): StreamResponse {
+        try {
+            // Use global Nextcloud services
+            $userSession = \OC::$server->getUserSession();
+            $rootFolder = \OC::$server->getRootFolder();
+            
+            $user = $userSession->getUser();
+            if (!$user) {
+                return $this->createErrorResponse('User not found', Http::STATUS_UNAUTHORIZED, $filename);
+            }
+            
+            $userFolder = $rootFolder->getUserFolder($user->getUID());
+            
+            // Try to get the file
+            try {
+                $file = $userFolder->get($filename);
+            } catch (\Exception $e) {
+                // File not found - return appropriate KiCAD content instead of HTML error
+                return $this->createMissingFileResponse($filename);
+            }
+            
+            if (!$file || $file->getType() !== \OCP\Files\FileInfo::TYPE_FILE) {
+                return $this->createMissingFileResponse($filename);
+            }
+            
+            // Get the file content and MIME type
+            $content = $file->getContent();
+            $mimeType = $file->getMimeType();
+            
+            // Create response with proper headers for KiCanvas
+            $response = new StreamResponse($content);
+            $response->addHeader('Content-Type', $mimeType);
+            $response->addHeader('Content-Disposition', 'inline; filename="' . $filename . '"');
+            $response->addHeader('Content-Length', (string)strlen($content));
+            $response->addHeader('Access-Control-Allow-Origin', '*');
+            $response->addHeader('Access-Control-Allow-Methods', 'GET');
+            $response->addHeader('Access-Control-Allow-Headers', 'Content-Type');
+            
+            return $response;
+            
+        } catch (\Exception $e) {
+            return $this->createErrorResponse('Server error: ' . $e->getMessage(), Http::STATUS_INTERNAL_SERVER_ERROR, $filename);
+        }
+    }
+
+    /**
+     * @NoAdminRequired
+     * @NoCSRFRequired
+     * @PublicPage
+     */
+    public function getPublicFileByToken(string $token): StreamResponse {
         try {
             // Check if token exists and is valid
             if (!isset(self::$publicTokens[$token])) {
