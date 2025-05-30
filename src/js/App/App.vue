@@ -13,11 +13,8 @@ SPDX-License-Identifier: AGPL-3.0-or-later
       </div>
       <kicanvas-embed 
         v-show="!isLoading"
-        controls="basic" 
+        controls="full" 
         :class="$style.kicanvasEmbed">
-        <kicanvas-source 
-          ref="kicanvasSource">
-        </kicanvas-source>
       </kicanvas-embed>
     </section>
   </div>

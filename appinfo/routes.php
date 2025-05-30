@@ -20,6 +20,16 @@ return [
                 'path' => '.+',
                 'filename' => '.+'
             ]
+        ],
+        [
+            'name' => 'file#createPublicToken',
+            'url' => '/api/public-token',
+            'verb' => 'POST'
+        ],
+        [
+            'name' => 'file#getPublicFile',
+            'url' => '/public/{token}',
+            'verb' => 'GET'
         ]
     ]
 ];
