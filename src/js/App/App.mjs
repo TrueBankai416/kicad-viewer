@@ -156,8 +156,45 @@ export default {
         enhancedLogger.debug('Checking Vue DOM state after isLoading = false');
         const loadingElement = document.querySelector('.loadingContainer');
         const kicanvasElement = document.querySelector('kicanvas-embed');
-        enhancedLogger.debug('Loading element visible:', loadingElement && !loadingElement.hasAttribute('style') ? 'YES' : 'NO');
-        enhancedLogger.debug('KiCanvas element visible:', kicanvasElement && !kicanvasElement.hasAttribute('style') ? 'YES' : 'NO');
+        
+        enhancedLogger.debug('Loading element:', {
+          exists: !!loadingElement,
+          style: loadingElement?.style?.cssText || 'none',
+          display: loadingElement?.style?.display || 'default',
+          hasDisplayNone: loadingElement?.style?.cssText?.includes('display: none') || false
+        });
+        
+        enhancedLogger.debug('KiCanvas element:', {
+          exists: !!kicanvasElement,
+          style: kicanvasElement?.style?.cssText || 'none', 
+          display: kicanvasElement?.style?.display || 'default',
+          hasDisplayNone: kicanvasElement?.style?.cssText?.includes('display: none') || false
+        });
+        
+        // Force Vue reactivity update
+        enhancedLogger.debug('Forcing Vue update to ensure reactivity works');
+        this.$forceUpdate();
+        
+        // Manual DOM manipulation as fallback
+        setTimeout(() => {
+          const loadingEl = document.querySelector('.loadingContainer');
+          const kicanvasEl = document.querySelector('kicanvas-embed');
+          
+          if (loadingEl && !loadingEl.style.cssText.includes('display: none')) {
+            enhancedLogger.debug('Manually hiding loading element');
+            loadingEl.style.display = 'none';
+          }
+          
+          if (kicanvasEl && kicanvasEl.style.cssText.includes('display: none')) {
+            enhancedLogger.debug('Manually showing KiCanvas element');
+            kicanvasEl.style.display = 'block';
+          }
+          
+          enhancedLogger.debug('After manual DOM updates:', {
+            loadingHidden: loadingEl?.style?.display === 'none',
+            kicanvasVisible: kicanvasEl?.style?.display !== 'none'
+          });
+        }, 50);
         
         // Give KiCanvas a moment to render, then try multiple refresh approaches
         setTimeout(() => {
