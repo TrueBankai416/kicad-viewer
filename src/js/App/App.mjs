@@ -278,8 +278,9 @@ export default {
       enhancedLogger.debug('File content length:', fileContent.length);
 
       // Try approaches in order of preference and reliability
-      // KiCanvas might prefer text content over blob URLs
+      // KiCanvas might prefer script tags over text content
       const approaches = [
+        () => this.tryScriptTag(sourceElement, fileContent, fileExtension, mimeType),
         () => this.tryTextContent(sourceElement, fileContent, fileExtension, mimeType),
         () => this.tryBlobUrl(sourceElement, fileContent, fileExtension, mimeType),
         () => this.tryDataUrl(sourceElement, fileContent, fileExtension, mimeType),
@@ -339,6 +340,37 @@ export default {
         enhancedLogger.error('Blob URL approach failed:', error);
         throw error;
       }
+    },
+
+    tryScriptTag(sourceElement, fileContent, fileExtension, mimeType) {
+      enhancedLogger.debug('Trying script tag approach');
+      
+      // Clear any existing content
+      sourceElement.innerHTML = '';
+      
+      // Create script tag with content
+      const script = document.createElement('script');
+      script.type = mimeType;
+      script.textContent = fileContent;
+      
+      // Set attributes on source element
+      sourceElement.setAttribute('type', mimeType);
+      sourceElement.setAttribute('data-format', fileExtension);
+      sourceElement.setAttribute('name', this.basename);
+      
+      // Append script to source
+      sourceElement.appendChild(script);
+      
+      enhancedLogger.debug('Set script tag with attributes:', {
+        sourceType: sourceElement.getAttribute('type'),
+        sourceName: sourceElement.getAttribute('name'),
+        sourceFormat: sourceElement.getAttribute('data-format'),
+        scriptType: script.type,
+        scriptContentLength: script.textContent?.length || 0,
+        totalChildren: sourceElement.children.length
+      });
+      
+      return true;
     },
 
     tryTextContent(sourceElement, fileContent, fileExtension, mimeType) {
