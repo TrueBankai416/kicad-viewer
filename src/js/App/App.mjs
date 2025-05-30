@@ -63,22 +63,37 @@ export default {
     enhancedLogger.debug('Destroying KiCAD Viewer component');
     this.destruct();
   },
+  beforeMount () {
+    // Clean up any existing KiCanvas elements before mounting new ones
+    this.cleanupKiCanvas();
+  },
   methods: {
-    destruct () {
-      // Clean up kicanvas embed
-      if (this.kicanvasEmbed) {
-        try {
-          // Remove source elements
-          while (this.kicanvasEmbed.firstChild) {
-            this.kicanvasEmbed.removeChild(
-              this.kicanvasEmbed.firstChild,
-            );
+    cleanupKiCanvas () {
+      try {
+        // Find and remove any existing kicanvas-embed elements to prevent ShadowDOM conflicts
+        const existingEmbeds = document.querySelectorAll('kicanvas-embed');
+        existingEmbeds.forEach((embed, index) => {
+          enhancedLogger.debug(`Removing existing KiCanvas embed element ${index}`);
+          
+          // Disconnect any observers or cleanup internal state
+          if (typeof embed.disconnect === 'function') {
+            embed.disconnect();
           }
-        } catch (error) {
-          enhancedLogger.debug('Error cleaning up KiCanvas:', error);
-        }
-        this.kicanvasEmbed = null;
+          if (typeof embed.cleanup === 'function') {
+            embed.cleanup();
+          }
+          
+          // Remove from DOM completely
+          embed.remove();
+        });
+        
+        enhancedLogger.debug(`Cleaned up ${existingEmbeds.length} existing KiCanvas elements`);
+      } catch (error) {
+        enhancedLogger.debug('Error during KiCanvas cleanup:', error);
       }
+    },
+    destruct () {
+      this.cleanupKiCanvas();
     },
     async construct () {
       this.isLoading = true;
