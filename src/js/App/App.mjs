@@ -153,6 +153,11 @@ export default {
         embedElement.textContent = fileContent;
         embedElement.setAttribute('data-content', fileContent);
         
+        // Configure KiCanvas for standalone mode - prevent loading dependent files
+        embedElement.setAttribute('standalone', 'true');
+        embedElement.setAttribute('base-url', '');
+        embedElement.setAttribute('disable-hierarchical-loading', 'true');
+        
         // Try KiCanvas API methods to trigger content parsing
         try {
           // Method 1: Use initialContentCallback if available
@@ -163,9 +168,20 @@ export default {
           
           // Method 2: Use WebDAV URL directly - KiCanvas can fetch it and recognize file extension
           if ('src' in embedElement) {
-            enhancedLogger.debug('Setting src property to WebDAV URL');
+            enhancedLogger.debug('Setting src property to WebDAV URL for standalone mode');
             embedElement.src = this.davPath;
-            enhancedLogger.debug('Set src to WebDAV URL:', this.davPath);
+            
+            // Configure standalone mode properties
+            if ('baseUrl' in embedElement) {
+              embedElement.baseUrl = '';
+              enhancedLogger.debug('Set baseUrl to empty for standalone mode');
+            }
+            if ('allowHierarchicalLoading' in embedElement) {
+              embedElement.allowHierarchicalLoading = false;
+              enhancedLogger.debug('Disabled hierarchical loading');
+            }
+            
+            enhancedLogger.debug('Set src to WebDAV URL for standalone mode:', this.davPath);
           }
           
           // Method 3: Call render method if available
@@ -174,7 +190,7 @@ export default {
             embedElement.render();
           }
           
-          enhancedLogger.debug('Used KiCanvas API methods for direct content');
+          enhancedLogger.debug('Used KiCanvas API methods with standalone configuration');
           
         } catch (error) {
           enhancedLogger.error('KiCanvas API methods failed:', error.message);
