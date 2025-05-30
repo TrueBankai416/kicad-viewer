@@ -234,19 +234,31 @@ export default {
         enhancedLogger.debug('Forcing Vue update to ensure reactivity works');
         this.$forceUpdate();
         
-        // Manual DOM manipulation as fallback
+        // Manual DOM manipulation as fallback - target the correct Vue elements
         setTimeout(() => {
-          const loadingEl = document.querySelector('.loadingContainer');
-          const kicanvasEl = document.querySelector('kicanvas-embed');
+          // Find loading element - it has CSS module class, so search by tag structure
+          const appContainer = document.querySelector(`#${this.uuid}`);
+          const loadingEl = appContainer?.querySelector('div[class*="loadingContainer"]');
+          const kicanvasEl = appContainer?.querySelector('kicanvas-embed');
           
-          if (loadingEl && !loadingEl.style.cssText.includes('display: none')) {
-            enhancedLogger.debug('Manually hiding loading element');
+          enhancedLogger.debug('Found elements:', {
+            appContainer: !!appContainer,
+            loadingEl: !!loadingEl,
+            kicanvasEl: !!kicanvasEl,
+            loadingElClasses: loadingEl?.className,
+            kicanvasElClasses: kicanvasEl?.className
+          });
+          
+          if (loadingEl) {
+            enhancedLogger.debug('Manually hiding loading element via style.display');
             loadingEl.style.display = 'none';
+            loadingEl.style.visibility = 'hidden';
           }
           
-          if (kicanvasEl && kicanvasEl.style.cssText.includes('display: none')) {
+          if (kicanvasEl) {
             enhancedLogger.debug('Manually showing KiCanvas element');
             kicanvasEl.style.display = 'block';
+            kicanvasEl.style.visibility = 'visible';
           }
           
           enhancedLogger.debug('After manual DOM updates:', {
