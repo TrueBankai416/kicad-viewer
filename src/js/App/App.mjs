@@ -136,12 +136,17 @@ export default {
           throw new Error('KiCanvas embed element not found in DOM');
         }
 
-        // Use the correct KiCanvas pattern - set src attribute on embed element
-        let loadSuccess = await this.loadContentIntoKiCanvasEmbed(embedElement, fileContent, fileExtension, mimeType);
+        // Use the simplest approach - set the original file URL directly
+        const fileFetchUrl = this.source || this.davPath;
+        enhancedLogger.debug('Setting KiCanvas src to original file URL:', fileFetchUrl);
         
-        if (!loadSuccess) {
-          throw new Error('Failed to load content into KiCanvas using any method');
-        }
+        embedElement.setAttribute('src', fileFetchUrl);
+        
+        enhancedLogger.debug('Set KiCanvas embed src to original URL:', {
+          src: embedElement.getAttribute('src'),
+          controls: embedElement.getAttribute('controls'),
+          tagName: embedElement.tagName
+        });
 
         enhancedLogger.debug('Content loaded successfully, stopping loading spinner');
         enhancedLogger.debug('Before setting isLoading = false. Current value:', this.isLoading);
